@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Meydan Savaşçıları - Mobil Arena</title>
+    <style>
+        *{box-sizing:border-box;user-select:none;-webkit-user-select:none;touch-action:none}
+        body,html{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background-color:#1a252f;font-family:sans-serif;overscroll-behavior:none}
+        canvas{display:block}
+        #start-screen{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(26,37,47,.95);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:50}
+        #title-screen{position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#1a252f,#2c3e50);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:60}
+        #title-screen h1{font-size:42px;color:#f1c40f;text-shadow:0 0 20px rgba(241,196,15,.5);margin-bottom:40px;letter-spacing:2px}
+        #title-play-btn{padding:18px 50px;font-size:22px;font-weight:bold;background:radial-gradient(circle,#2ecc71,#27ae60);color:#fff;border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 15px rgba(46,204,113,.4)}
+        #start-screen h1{color:#f1c40f;font-size:clamp(26px,7vw,45px);margin-bottom:16px;text-shadow:0 4px 10px rgba(0,0,0,.5);text-align:center;padding:0 10px}
+        .char-select-container{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-bottom:22px;max-width:96%;padding:0 6px}
+        .char-card{background:rgba(0,0,0,.4);border:3px solid transparent;border-radius:15px;padding:10px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;transition:all .2s;width:calc(25% - 8px);min-width:74px;max-width:100px;box-sizing:border-box}
+        .char-card.selected{border-color:#2ecc71;background:rgba(46,204,113,.15);transform:scale(1.05)}
+        .char-color-preview{width:30px;height:30px;border-radius:50%;margin-bottom:6px;box-shadow:inset -5px -5px 10px rgba(0,0,0,.4)}
+        .char-card span{color:#fff;font-weight:700;font-size:13px;text-align:center} .char-card small{color:#aaa;font-size:9px;margin-top:4px;text-align:center;line-height:1.3}
+        #start-btn{padding:15px 50px;font-size:22px;font-weight:700;color:#fff;background-color:#2ecc71;border:none;border-radius:10px;box-shadow:0 5px 0 #27ae60;cursor:pointer}
+        #start-btn:active{transform:translateY(4px);box-shadow:0 1px 0 #27ae60}
+        .joystick-container{position:absolute;bottom:60px;width:140px;height:140px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.15);border-radius:50%;display:flex;justify-content:center;align-items:center;z-index:10}
+        #left-joystick{left:30px} #right-joystick{right:30px}
+        .knob{width:55px;height:55px;border-radius:50%;pointer-events:none;transition:transform .05s linear}
+        #left-knob{background:rgba(52,152,219,.8)} #right-knob{background:rgba(231,76,60,.8)}
+        .g-btn{position:absolute;bottom:210px;width:65px;height:65px;border-radius:50%;border:3px solid #fff;color:#fff;font-weight:700;display:none;flex-direction:column;justify-content:center;align-items:center;z-index:15;box-shadow:0 4px 10px rgba(0,0,0,.5);cursor:pointer;font-size:10px;text-align:center}
+        #gadget-btn{right:50px;background:radial-gradient(circle,#27ae60,#219150);}
+        #gadget-btn-2{right:125px;background:radial-gradient(circle,#9b59b6,#8e44ad);}
+        .g-btn.active{background:#f1c40f;border-color:#fff;transform:scale(1.1);box-shadow:0 0 15px #f1c40f}
+        .g-btn.cooldown{filter:grayscale(1);opacity:.5;pointer-events:none}
+        #ulti-btn{position:absolute;bottom:290px;right:50px;width:65px;height:65px;border-radius:50%;background:radial-gradient(circle,#f39c12,#d35400);border:3px solid #fff;color:#fff;font-weight:700;display:none;flex-direction:column;justify-content:center;align-items:center;z-index:15;box-shadow:0 4px 10px rgba(0,0,0,.5);cursor:pointer;font-size:12px;text-align:center;transition:all 0.2s;}
+        #ulti-btn.ready{box-shadow:0 0 20px #f1c40f;transform:scale(1.1);animation:pulse 1s infinite;}
+        @keyframes pulse { 0% {box-shadow:0 0 10px #f39c12;} 50% {box-shadow:0 0 25px #f1c40f;} 100% {box-shadow:0 0 10px #f39c12;} }
+        .ult-bar{width:40px;height:6px;background:#444;margin-top:5px;border-radius:3px;overflow:hidden;border:1px solid #000;}
+        .ult-fill{height:100%;background:#f1c40f;width:0%;transition:width 0.2s;}
+        #game-over-screen{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.75);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:20}
+        #game-over-screen h1{color:#fff;font-size:40px;margin-bottom:20px;text-shadow:2px 2px 5px rgba(0,0,0,.5)}
+        #restart-btn{padding:15px 40px;font-size:20px;font-weight:700;color:#fff;background:#e74c3c;border:none;border-radius:10px;box-shadow:0 4px 6px rgba(0,0,0,.3);cursor:pointer}
+        #difficulty-screen{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(26,37,47,.95);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:55;overflow-y:auto;padding:20px 0;box-sizing:border-box}
+        #difficulty-screen h1{color:#f1c40f;font-size:clamp(24px,7vw,38px);margin-bottom:8px;text-shadow:0 4px 10px rgba(0,0,0,.5);text-align:center;padding:0 10px}
+        #difficulty-screen p{color:#aaa;font-size:13px;margin-bottom:18px;text-align:center;padding:0 10px}
+        .difficulty-track{display:flex;flex-direction:column;gap:14px;overflow-y:auto;scroll-snap-type:y mandatory;width:100%;max-width:100%;padding:12vh 0;box-sizing:border-box;max-height:60vh;-webkit-overflow-scrolling:touch}
+        .difficulty-track::-webkit-scrollbar{display:none}
+        .diff-card{scroll-snap-align:center;flex:0 0 auto;width:min(76vw,300px);margin:0 auto;background:rgba(0,0,0,.4);border:3px solid transparent;border-radius:15px;padding:20px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;transition:all .2s;box-sizing:border-box}
+        .diff-card.selected{border-color:#2ecc71;background:rgba(46,204,113,.15);transform:scale(1.03)}
+        .diff-card span{color:#fff;font-weight:700;font-size:18px;margin-bottom:8px}
+        .diff-card small{color:#aaa;font-size:12px;text-align:center;line-height:1.5}
+        #difficulty-start-btn{margin-top:8px;padding:14px 45px;font-size:20px;font-weight:700;color:#fff;background-color:#2ecc71;border:none;border-radius:10px;box-shadow:0 5px 0 #27ae60;cursor:pointer}
+        #difficulty-start-btn:active{transform:translateY(4px);box-shadow:0 1px 0 #27ae60}
+    </style>
+</head>
+<body>
+    <div id="title-screen">
+        <h1>MEYDAN SAVAŞÇILARI</h1>
+        <button id="title-play-btn">Oyuna Başla</button>
+    </div>
+    <div id="start-screen" style="display:none;">
+        <h1>MEYDAN SAVAŞÇILARI</h1>
+        <div class="char-select-container">
+            <div class="char-card selected" id="char-spike"><div class="char-color-preview" style="background:#d4a017;"></div><span>Kirpi</span><small>Hasar: 1000<br>Güç: Diken Duvarı</small></div>
+            <div class="char-card" id="char-ninja"><div class="char-color-preview" style="background:#6c5ce7;"></div><span>Gölge</span><small>Hasar: 3x260<br>Güç: El Bombası</small></div>
+            <div class="char-card" id="char-hayalet"><div class="char-color-preview" style="background:#7f8c9a;"></div><span>Hortlak</span><small>Hasar: 1000<br>Güç: Sis Fırtınası</small></div>
+            <div class="char-card" id="char-sam"><div class="char-color-preview" style="background:#a83232;"></div><span>Devko</span><small>Hasar: Öfke Kombo<br>Güç: Dev Eldiven</small></div>
+        </div>
+        <button id="start-btn">Savaşa Katıl</button>
+    </div>
+    <div id="difficulty-screen">
+        <h1>MOD SEÇ</h1>
+        <p>Kaydırarak veya dokunarak seç</p>
+        <div class="difficulty-track" id="difficulty-track">
+            <div class="diff-card selected" id="diff-normal"><span>Klasik</span><small>Botlar orijinal hızında<br>Standart zorluk</small></div>
+            <div class="diff-card" id="diff-easy"><span>Kolay</span><small>Botlar daha yavaş hareket eder<br>Yeni başlayanlar için</small></div>
+        </div>
+        <button id="difficulty-start-btn">Savaşa Katıl</button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="left-joystick" class="joystick-container" style="display:none;"><div class="knob" id="left-knob"></div></div>
+    <div id="right-joystick" class="joystick-container" style="display:none;"><div class="knob" id="right-knob"></div></div>
+    
+    <div id="gadget-btn" class="g-btn">YETENEK<br><span id="gadget-timer"></span></div>
+    <div id="gadget-btn-2" class="g-btn">SIÇRAYIŞ<br><span id="gadget-timer-2"></span></div>
+    
+    <div id="ulti-btn">GÜÇ<div class="ult-bar"><div class="ult-fill" id="ult-fill"></div></div></div>
+    
+    <div id="game-over-screen"><h1>OYUN BİTTİ</h1><button id="restart-btn">Yeniden Başla</button></div>
+
+    <script>
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        const canvas = document.getElementById('gameCanvas'), ctx = canvas.getContext('2d');
+        const gadgetBtn = document.getElementById('gadget-btn'); let gadgetTimerText = document.getElementById('gadget-timer');
+        const gadgetBtn2 = document.getElementById('gadget-btn-2'); let gadgetTimerText2 = document.getElementById('gadget-timer-2');
+        const ultiBtn = document.getElementById('ulti-btn'), ultFill = document.getElementById('ult-fill');
+        
+        // ==========================================================================
+        // GENİŞLETME NOKTASI (MOD SCRIPT REGISTRY)
+        // --------------------------------------------------------------------------
+        // Bu blok, ana oyun koduna dokunmadan yeni karakter / yeni bot / yeni
+        // siper / yeni hedefleme mantığı / yeni oyun modu eklemek için, kapanış
+        // </body>'den önce eklenecek AYRI <script src="modX.js"> etiketleriyle
+        // kullanılacak "kayıt" noktasıdır. O dosyalar bu HTML ile aynı klasörde
+        // durup, sayfa yüklenirken bu ana script'ten SONRA çalışacak şekilde
+        // eklenmelidir; o zaman aşağıdaki window.GAME_EXT objesi zaten hazır olur
+        // ve mod dosyaları sadece bu objeye yazar - ana koda dokunmaz.
+        //
+        // KAYIT NOKTALARI:
+        //   window.GAME_EXT.characters[isim]   -> {color, hp, speed}
+        //   window.GAME_EXT.obstacleTypes[isim] -> {radius, hp, color} (görsel/temel veri)
+        //   window.GAME_EXT.botTypes[isim]      -> mod dosyasının kendi bot objelerini
+        //                                          tanımlaması için ayrılmış isim alanı
+        //   window.GAME_EXT.modes[isim]         -> {label, onStart(), onUpdate(ts), onDraw(ctx), onReset()}
+        //   window.GAME_EXT.hooks.getBotTarget(bot) -> bir bot'un hedefinin KOORDİNATINI
+        //       ({x,y,...}) döndürür (tanımlanmazsa varsayılan olarak oyuncu hedeflenir)
+        //   window.GAME_EXT.hooks.getEngageDistance(bot) -> bir bot'un "menzil/yaklaşma"
+        //       hesaplamalarında kullanılacak MESAFEYİ döndürür (tanımlanmazsa
+        //       varsayılan olarak oyuncuya olan mesafe kullanılır). getBotTarget farklı
+        //       bir hedef (örn. kule) döndürüyorsa, bu hook da genelde o hedefe olan
+        //       mesafeyi döndürmeli - yoksa bot menzile girdiğini anlayamaz.
+        //   window.GAME_EXT.hooks.getExtraTargets() -> bot mermilerinin çarpışma
+        //       kontrolünde oyuncuya EK olarak isabet edebileceği objelerin dizisini
+        //       döndürür (örn. [kule]). Her obje {x,y,radius,hp,...} şeklinde olmalı;
+        //       hasar aldığında hp alanı azaltılır.
+        //   window.GAME_EXT.hooks.getExtraEnemies() -> mod dosyasının tanımladığı,
+        //       ana dosyanın bilmediği YENİ bot dizilerini döndürür; bu dizi
+        //       getActiveEnemies() sonucuna otomatik eklenir (çarpışma/hedefleme dahil).
+        //   window.GAME_EXT.hooks.onEnemyKilled(enemy) -> herhangi bir düşman
+        //       öldüğünde (triggerBotKill anında) çağrılır; mod dosyası bunu
+        //       ekonomi/para sistemi için kullanabilir.
+        //   window.GAME_EXT.hooks.onObstacleTick() -> normal siper üretim
+        //       zamanlayıcısıyla aynı anda, her ~4.5 saniyede bir çağrılır
+        //   window.GAME_EXT.hooks.onBotSpawnTick(ts) -> her karede, diğer bot
+        //       zamanlayıcılarıyla aynı yerde çağrılır (yeni bot türleri için)
+        //   window.GAME_EXT.hooks.onDraw(ctx)   -> her karede, oyun çizimi
+        //       bittikten sonra çağrılır (kule, özel siper gibi ekstra çizimler için)
+        //   window.GAME_EXT.hooks.onReset()     -> oyun yeniden başlarken/restart
+        //       olurken çağrılır (mod dosyasının kendi dizilerini temizlemesi için)
+        //   window.GAME_EXT.hooks.checkGameOver() -> true döndürürse oyun biter
+        //       (örn. kule HP<=0). Oyuncu ölümü kontrolü buna bağlı değildir, bu
+        //       sadece EK bir bitiş koşuludur.
+        //   window.GAME_MODE_DISABLED_BOT_TYPES -> ['stationary','boomerang'] gibi
+        //       bir dizi; listedeki tiplerin normal spawn zamanlayıcıları bu modda
+        //       hiç çalışmaz (mod dosyası set eder).
+        //
+        // ÖRNEK (mod dosyasının İÇİNDE, ana dosyada DEĞİL):
+        //   const myTower = {x:400,y:300,radius:20,hp:5000,maxHp:5000};
+        //   window.GAME_EXT.modes['tower_defense'] = {
+        //       label: 'Kule Savunması',
+        //       onStart(){ /* kule oluştur */ },
+        //       onUpdate(ts){ /* kule can/saldırı mantığı */ },
+        //       onDraw(ctx){ /* kuleyi çiz */ },
+        //       onReset(){ /* kule state'ini sıfırla */ }
+        //   };
+        //   window.GAME_EXT.hooks.getBotTarget = function(bot){ return myTower; };
+        //   window.GAME_EXT.hooks.getEngageDistance = function(bot){ return getDist(myTower, bot); };
+        //   window.GAME_EXT.hooks.getExtraTargets = function(){ return [myTower]; };
+        //   window.GAME_EXT.hooks.checkGameOver = function(){ return myTower.hp<=0; };
+        //   window.GAME_MODE_DISABLED_BOT_TYPES = ['stationary','boomerang'];
+        //   window.GAME_MODE = 'tower_defense';
+        //
+        // Ana kod bu objeleri ŞİMDİDEN çağırıyor (aşağıdaki hook noktalarında) —
+        // yani ileride yeni script eklendiğinde BU DOSYANIN bir daha
+        // değiştirilmesine gerek kalmaz; her şey mod dosyasının içinde kalır.
+        // ==========================================================================
+        window.GAME_EXT = window.GAME_EXT || { characters: {}, modes: {}, obstacleTypes: {}, botTypes: {}, hooks: {} };
+        window.GAME_MODE = window.GAME_MODE || 'arena';
+        window.GAME_MODE_DISABLED_BOT_TYPES = window.GAME_MODE_DISABLED_BOT_TYPES || [];
+        // Zorluk sistemi: normal modda botlar orijinal hızında, 'easy' modda yavaşlatılmış hızda çalışır.
+        // Turuncu (stationary) bot zaten hareket etmiyor (speed:0), bu yüzden bu fonksiyondan etkilenmez.
+        window.GAME_DIFFICULTY = window.GAME_DIFFICULTY || 'normal';
+        const getBotSpeed = (baseSpeed) => window.GAME_DIFFICULTY === 'easy' ? Math.max(0.1, baseSpeed - 0.5) : baseSpeed;
+        // Zorluğa göre değer seçer: kolay modda easyVal, klasik/normal modda normalVal döner.
+        const easyVal = (normalVal, easyValue) => window.GAME_DIFFICULTY === 'easy' ? easyValue : normalVal;
+
+
+        let gameStarted = false, selectedCharacter = 'spike', botsKilled = 0, screenShake = 0, obstacles = [], lastObstacleTime = 0, particles = [], lastTime = 0;
+        let spikeFields = [], samGloves = [], souls = [], cactusWalls = [], explosions = [], boomerangBots = [], nests = [], fogBots = [], lastNestKillCount = 0;
+        let slimeTimer = 0, stationaryTimer = 0, boomerangTimer = 0, fogBotTimer = 0, fogAreas = [], spawnIndicators = [], ghostZones = [], specialSouls = []; 
+        
+        const RANGE = 300, PLAYER_BULLET_SPEED = 11.6, BOT_BULLET_SPEED = 6.8, REGEN_DELAY = 3000, REGEN_AMOUNT = 350/60, BOT_RESPAWN_TIME = 250, BOT_SHOOT_INTERVAL = 1600, WALL_THICKNESS = 25;
+        const SAM_ULTI_RANGE = 342; // 380'in %10 azaltılmışı, mermi menzili ve nişan çizgisi buradan senkron okur
+        const GHOST_ULTI_RADIUS = 198; // 220'nin %10 azaltılmışı
+        const getDist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+        const getAngle = (a, b) => Math.atan2(b.y - a.y, b.x - a.x);
+        const getActiveEnemies = () => {
+            let extra = (typeof window.GAME_EXT.hooks.getExtraEnemies === 'function') ? (window.GAME_EXT.hooks.getExtraEnemies() || []) : [];
+            return [bot, bot2, ...slimeBots, ...stationaryBots, ...boomerangBots, ...nests, ...fogBots, ...extra].filter(e => e.isActive !== false && !e.isDead);
+        };
+        const clampPos = (val, min, max) => Math.max(min, Math.min(max, val));
+
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); window.addEventListener('orientationchange', ()=>setTimeout(resize,100)); resize();
+
+        class Player {
+            constructor() {
+                this.x=150; this.y=300; this.radius=20; this.angle=0; this.ammo=3; this.maxAmmo=3; this.reloadSpeed=0.015;
+                this.lastHitTime=0; this.lastShotTime=0; this.isDead=false; this.regenBuffer=0; this.hasGloves=true; 
+                this.setCharacter('spike');
+            }
+            setCharacter(type) {
+                this.charType=type; this.isDashing=this.isBursting=this.isInvisible=false;
+                this.burstCount=this.attackSequence=this.invisTimer=this.gadgetCooldown=0;
+                this.gadgetReady=true; this.gadgetActive=false; this.ammo=this.maxAmmo;
+                this.hayaletHitCount=this.stillTimer=0; this.isRooted=false; this.ninjaUltiAktif=false;
+                this.ninjaZoneActive=false; this.ninjaZoneX=0; this.ninjaZoneY=0; this.ninjaZoneTimer=0; this.ninjaZoneRadius=114;
+                this.gadget2Ready=true; this.gadget2Cooldown=0;
+                this.isJumping=false; this.jumpInvulnerable=false; this.jumpProgress=0;
+                this.samHitCount=0; this.samRageActive=false; this.samRageTimer=0; 
+                this.revealTimer=0; this.ghostZoneInvisAccum=0; this.ghostZoneHealTimer=0;
+                this.spikeVortexActive=false;
+                this.ultiHazirlik=false; 
+                
+                const builtInStats = {
+                    'ninja':{c:'#e67e22',h:2200,s:4.9},
+                    'hayalet':{c:'#95a5a6',h:3800,s:2.5},
+                    'spike':{c:'#f1c40f',h:3600,s:3.2},
+                    'sam':{c:'#c0392b',h:4800,s:3.4}
+                };
+                const extChar = window.GAME_EXT.characters[type];
+                const stats = builtInStats[type] || (extChar ? {c:extChar.color, h:extChar.hp, s:extChar.speed} : null) || {c:'#f1c40f',h:2800,s:3.2};
+                Object.assign(this, {color: stats.c, maxHp: stats.h, hp: stats.h, speed: stats.s, originalSpeed: stats.s});
+                this.ultCharge=0; this.ultReady=false; 
+
+                if (type === 'sam') { this.hasGloves=true; samGloves=[]; this.ultCharge=100; this.ultReady=true; }
+                if(ultFill) ultFill.style.width = this.ultCharge + "%";
+                if(ultiBtn) {
+                    this.ultReady ? ultiBtn.classList.add('ready') : ultiBtn.classList.remove('ready');
+                    ultiBtn.style.boxShadow = ''; 
+                }
+            }
+            // ... (activateGadget, activateGadget2, setCooldown, consumeAmmo, fire, fireUlti - aynen, sadece fire içinde yeni tipler var)
+            activateGadget(a, pull) {
+                if(!this.gadgetReady||this.isDead||this.gadgetActive||this.isDashing) return;
+                let angle = a !== undefined ? a : this.angle;
+                if(this.charType==='ninja') { 
+                    let pullMag = pull !== undefined ? Math.max(0, Math.min(1, pull)) : 1;
+                    let targetDist = Math.max(40, RANGE * 0.8 * pullMag);
+                    let targetX = this.x + Math.cos(angle) * targetDist;
+                    let targetY = this.y + Math.sin(angle) * targetDist;
+                    bullets.push({
+                        x:this.x, y:this.y, sx:this.x, sy:this.y,
+                        vx:0, vy:0, type:'ninja_gadget_throw',
+                        lobbed:true, isLanded:false, flightProgress:0, targetX:targetX, targetY:targetY
+                    });
+                    this.setCooldown();
+                }
+                else if(this.charType==='spike') { 
+                    this.spikeVortexActive = true;
+                    addFloatingNumber(this.x, this.y, "GİRDAP HAZIR!", "#8e44ad");
+                    this.setCooldown();
+                }
+                else if(this.charType==='hayalet') { 
+                    if(souls.length > 0) {
+                        souls.forEach(s => {
+                            explosions.push({x:s.x, y:s.y, radius:0, maxRadius:160, life:15, maxLife:15});
+                            spawnParticles(s.x,s.y,'#95a5a6','smoke');
+                            getActiveEnemies().forEach(e => {
+                                if(getDist(s, e) < 160) { 
+                                    e.hp -= 800; 
+                                    addFloatingNumber(e.x, e.y, "800", "#95a5a6", false); 
+                                }
+                            });
+                        });
+                        screenShake = 15; souls = []; this.gadgetReady = false; this.gadgetCooldown = 480; 
+                        gadgetBtn.classList.remove('active'); gadgetBtn.classList.add('cooldown');
+                        addFloatingNumber(this.x, this.y, "RUH PATLAMASI!", "#95a5a6"); 
+                    } else {
+                        addFloatingNumber(this.x, this.y, "RUH YOK!", "#e74c3c");
+                    }
+                }
+                else if(this.charType==='sam') { 
+                    if(!this.hasGloves && samGloves.length>0) {
+                        let g=samGloves[0], çektiMi=false;
+                        getActiveEnemies().filter(e=>getDist(e,g)<250).forEach(e=>{let ang=getAngle(e,g); e.kbX=Math.cos(ang)*70; e.kbY=Math.sin(ang)*70; addFloatingNumber(e.x,e.y,"ÇEKİLDİ!","#8e44ad"); çektiMi=true;});
+                        if(çektiMi) { spawnParticles(g.x,g.y,'#8e44ad','normal'); addFloatingNumber(g.x,g.y-20,"MANYETİK ALAN!","#c0392b"); this.setCooldown(); }
+                    }
+                } else { this.gadgetActive=true; gadgetBtn.classList.add('active'); }
+            }
+            activateGadget2(a, pull) {
+                if(!this.gadget2Ready||this.isDead||!(this.charType==='ninja'||this.charType==='sam'||this.charType==='hayalet'||this.charType==='spike')) return;
+                if(this.charType==='ninja') {
+                    let pullMag = pull !== undefined ? Math.max(0, Math.min(1, pull)) : 1;
+                    let maxDist = RANGE * 0.65;
+                    let dist = Math.max(60, maxDist * pullMag);
+                    let angle = a !== undefined ? a : this.angle;
+                    let tx = clampPos(this.x + Math.cos(angle)*dist, WALL_THICKNESS+this.radius+5, canvas.width-WALL_THICKNESS-this.radius-5);
+                    let ty = clampPos(this.y + Math.sin(angle)*dist, WALL_THICKNESS+this.radius+5, canvas.height-WALL_THICKNESS-this.radius-5);
+                    this.isJumping = true; this.jumpInvulnerable = true;
+                    this.jumpStartX = this.x; this.jumpStartY = this.y;
+                    this.jumpTargetX = tx; this.jumpTargetY = ty;
+                    this.jumpProgress = 0; this.jumpDuration = 40;
+                    this.jumpDamage = 300; this.jumpKnockback = 18; this.jumpLabel = "GÖLGE SIÇRAYIŞI!";
+                    spawnParticles(this.x, this.y, '#2ecc71', 'smoke');
+                    this.gadget2Ready=false; this.gadget2Cooldown=900; gadgetBtn2.classList.add('cooldown');
+                } else if(this.charType==='sam') {
+                    if(!this.hasGloves && samGloves.length>0) {
+                        let g = samGloves[0];
+                        this.isJumping = true; this.jumpInvulnerable = true;
+                        this.jumpStartX = this.x; this.jumpStartY = this.y;
+                        this.jumpTargetX = g.x; this.jumpTargetY = g.y;
+                        this.jumpProgress = 0; this.jumpDuration = 22;
+                        this.jumpDamage = 500; this.jumpKnockback = 12; this.jumpLabel = "DEV SIÇRAYIŞI!";
+                        bullets.push({x:g.x,y:g.y,sx:g.x,sy:g.y,vx:0,vy:0,type:'sam_return',hitTargets:[],distInfo:g.dist});
+                        samGloves=[];
+                        spawnParticles(this.x, this.y, '#9b59b6', 'smoke');
+                        this.gadget2Ready=false; this.gadget2Cooldown=1500; gadgetBtn2.classList.add('cooldown');
+                    } else {
+                        addFloatingNumber(this.x, this.y, "ELDİVEN YOK!", "#e74c3c");
+                    }
+                } else if(this.charType==='hayalet') {
+                    this.soulReleaserArmed = true;
+                    addFloatingNumber(this.x, this.y, "RUH ÇIKARICI HAZIR!", "#00ffff");
+                    this.gadget2Ready=false; this.gadget2Cooldown=900; gadgetBtn2.classList.add('cooldown');
+                } else if(this.charType==='spike') {
+                    let angle = a !== undefined ? a : this.angle;
+                    let spreadTotal = Math.PI/4, count = 8, sp = PLAYER_BULLET_SPEED;
+                    for(let i=0;i<count;i++){
+                        let ang = angle + (-spreadTotal/2 + (spreadTotal/(count-1))*i);
+                        bullets.push({x:this.x,y:this.y,sx:this.x,sy:this.y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,type:'spike_thorn',rangeMod:1,bounces:0});
+                    }
+                    addFloatingNumber(this.x, this.y, "DİKEN FIRLATMA!", "#2ecc71");
+                    this.gadget2Ready=false; this.gadget2Cooldown=900; gadgetBtn2.classList.add('cooldown');
+                }
+            }
+            setCooldown() { this.gadgetReady=false; this.gadgetCooldown=this.charType==='ninja'?1200:900; gadgetBtn.classList.remove('active'); gadgetBtn.classList.add('cooldown'); }
+            
+            fire(a, pullOverride) {
+                if(this.charType==='hayalet'){
+                    this.isInvisible=false; this.invisTimer=0; 
+                    let inOwnZoneNow = ghostZones.some(z => getDist(this, z) < z.radius);
+                    this.revealTimer = inOwnZoneNow ? 5 : 30; 
+                }
+                if (this.charType === 'spike' && this.ultiHazirlik) {
+                    let pull = pullOverride;
+                    if (pull === undefined) {
+                        pull = Math.min(1, Math.hypot(aimData.x, aimData.y));
+                        if (aimData.isMouse || pull < 0.1) pull = 1;
+                    }
+                    this.fireUlti(a, pull);
+                    this.ultiHazirlik = false;
+                    ultiBtn.style.boxShadow = ''; 
+                    return;
+                }
+                
+                let sp=PLAYER_BULLET_SPEED;
+                if(this.charType==='ninja') {
+                    if(this.ninjaUltiAktif){ bullets.push({x:this.x,y:this.y,sx:this.x,sy:this.y,vx:Math.cos(a)*sp*1.2,vy:Math.sin(a)*sp*1.2,type:'ninja_bomb_bullet'}); this.ninjaUltiAktif=false; this.consumeAmmo(); }
+                    else if(!this.isBursting){this.isBursting=true;this.burstCount=3;this.burstTimer=0;this.burstAngle=a;this.consumeAmmo();}
+                }
+                else if(this.charType==='sam'){
+                    let emp=this.samRageActive; 
+                    bullets.push({x:this.x,y:this.y,sx:this.x,sy:this.y,vx:Math.cos(a)*sp*1.5,vy:Math.sin(a)*sp*1.5,type:this.hasGloves?'sam_punch_heavy':'sam_punch_light',empowered:emp,rangeMod:emp?1.15:1,hasHealedSam:false}); 
+                    this.consumeAmmo();
+                }
+                else if (this.charType === 'spike') {
+                    let rMod = this.isRooted ? 1.2 : 1;
+                    let isVortex = this.spikeVortexActive;
+                    if (isVortex) this.spikeVortexActive = false;
+                    
+                    let pullMag = Math.min(1, Math.hypot(aimData.x, aimData.y));
+                    if(aimData.isMouse || pullMag < 0.1) pullMag = 1; 
+                    
+                    let targetDist = Math.max(70, pullMag * RANGE * 0.78 * rMod);
+                    let targetX = this.x + Math.cos(a) * targetDist;
+                    let targetY = this.y + Math.sin(a) * targetDist;
+                    
+                    bullets.push({
+                        x:this.x, y:this.y, sx:this.x, sy:this.y,
+                        vx:0, vy:0, type:'sprout_bullet', isVortex:isVortex,
+                        lobbed:true, isLanded:false, flightProgress:0, targetX:targetX, targetY:targetY,
+                        bounces:3, lifeTimer:90 
+                    });
+                    this.consumeAmmo();
+                } 
+                else {
+                    let type = this.charType === 'hayalet' ? 'hayalet_bullet' : 'main';
+                    let soulRelease = this.charType === 'hayalet' && this.soulReleaserArmed;
+                    if(soulRelease) this.soulReleaserArmed = false;
+                    bullets.push({x:this.x,y:this.y,sx:this.x,sy:this.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,type:type,rangeMod:1,bounces:0,soulRelease:soulRelease});
+                    this.consumeAmmo();
+                }
+            }
+            consumeAmmo() { this.ammo--; this.lastHitTime=this.lastShotTime=Date.now(); }
+            
+            fireUlti(a, pull) {
+                if(!this.ultReady || this.isDead) return;
+                if(this.charType==='sam'&&!this.hasGloves) {
+                    if(samGloves.length>0){let g=samGloves[0];bullets.push({x:g.x,y:g.y,sx:g.x,sy:g.y,vx:0,vy:0,type:'sam_return',hitTargets:[],distInfo:g.dist});samGloves=[];addFloatingNumber(this.x,this.y,"GELİYOR!","#c0392b");}
+                } else {
+                    if(this.charType==='sam'&&this.hasGloves) { bullets.push({x:this.x,y:this.y,sx:this.x,sy:this.y,vx:Math.cos(a)*14,vy:Math.sin(a)*14,type:'sam_super',hitTargets:[]}); this.hasGloves=false; this.speed=this.originalSpeed*1.25; this.reloadSpeed=0.035; addFloatingNumber(this.x,this.y,"ELKIRAN!","#c0392b"); }
+                    else if(this.charType==='spike'){
+                        let pullMag = pull !== undefined ? Math.max(0, Math.min(1, pull)) : 1;
+                        let targetDist = Math.max(70, RANGE * 0.9 * pullMag);
+                        let tx = clampPos(this.x + Math.cos(a)*targetDist, WALL_THICKNESS+45, canvas.width-WALL_THICKNESS-45);
+                        let ty = clampPos(this.y + Math.sin(a)*targetDist, WALL_THICKNESS+45, canvas.height-WALL_THICKNESS-45);
+                        bullets.push({x:this.x,y:this.y,sx:this.x,sy:this.y,vx:0,vy:0,type:'spike_ulti_throw',lobbed:true,isLanded:false,flightProgress:0,targetX:tx,targetY:ty});
+                        addFloatingNumber(this.x,this.y-40,"DİKEN DUVARI!","#f1c40f");
+                    } 
+                    else if(this.charType==='ninja'){ this.ninjaUltiAktif=true; addFloatingNumber(this.x,this.y,"ZİNCİRLEME BOMBA!","#e67e22"); }
+                    else if(this.charType==='hayalet'){ ghostZones.push({x:this.x, y:this.y, radius:GHOST_ULTI_RADIUS, timer:720, tickTimer:0, healTickTimer:0, revealCycleTimer:0}); addFloatingNumber(this.x,this.y,"SİS FIRTINASI!","#bdc3c7"); }
+                }
+                this.ultReady=false; this.ultCharge=0; ultFill.style.width="0%"; ultiBtn.classList.remove('ready');
+            }
+        }
+
+        const player = new Player();
+        const getBotHp = (baseHp) => window.GAME_DIFFICULTY === 'easy' ? 2500 : baseHp;
+        const getSlimeHp = () => window.GAME_DIFFICULTY === 'easy' ? 500 : 700;
+        const createBot=(active,isDead)=>({isActive:active,x:canvas.width-150,y:300,radius:20,color:'#9b59b6',speed:getBotSpeed(active?1.36:1.76),angle:Math.PI,hp:getBotHp(3000),maxHp:getBotHp(3000),lastShot:0,shootInterval:BOT_SHOOT_INTERVAL,isDead:isDead,respawnTimer:isDead?-9999:0,nextSpawnX:0,nextSpawnY:0,kbX:0,kbY:0,alerted:false,bombaBulasti:false,bombaSayaci:0,ghostRingDebounce:0});
+        const bot=createBot(true,false), bot2=createBot(false,true);
+        let slimeBots=[], stationaryBots=[], bullets=[], botBullets=[], floatingNumbers=[];
+        
+        const moveData={x:0,y:0,angle:0,active:false,touchId:null,isMouse:false}, aimData={x:0,y:0,angle:0,active:false,touchId:null,isMouse:false};
+        const ultAim={active:false,angle:0,isMouse:false,x:0,y:0}, gadAim={active:false,angle:0,isMouse:false,x:0,y:0}, gadAim2={active:false,angle:0,isMouse:false,x:0,y:0};
+
+        function spawnParticles(x,y,c,t='normal') { for(let i=0,cnt=t==='smoke'?25:15;i<cnt;i++) particles.push({x:x,y:y,vx:(Math.random()-.5)*(t==='smoke'?4:8),vy:(Math.random()-.5)*(t==='smoke'?4:8),life:30+Math.random()*30,maxLife:60,color:t==='smoke'?'#7f8c8d':c,size:t==='smoke'?Math.random()*15+5:Math.random()*5+3,type:t}); }
+        function spawnObstacle() {
+            if(obstacles.length>=12) return;
+            let cx=canvas.width/2, cy=canvas.height/2, best=null, bestScore=-1;
+            const wallMargin = Math.max(120, Math.min(230, canvas.width*0.28, canvas.height*0.2)); // duvara olan mesafeyi ekran boyutuna göre ölçekleyerek artırdık
+            for(let attempt=0; attempt<10; attempt++){
+                let x=Math.random()*Math.max(0,canvas.width-wallMargin*2)+wallMargin, y=Math.random()*Math.max(0,canvas.height-wallMargin*2)+wallMargin;
+                let distFromCenter=getDist({x,y},{x:cx,y:cy});
+                if(distFromCenter<200) continue;
+                let minDistToOther=obstacles.length?Math.min(...obstacles.map(o=>getDist({x,y},o))):9999;
+                let score=distFromCenter+minDistToOther*0.5;
+                if(score>bestScore){bestScore=score;best={x,y};}
+            }
+            if(!best) best={x:Math.random()*Math.max(0,canvas.width-wallMargin*2)+wallMargin,y:Math.random()*Math.max(0,canvas.height-wallMargin*2)+wallMargin};
+            obstacles.push({x:best.x,y:best.y,radius:35+Math.random()*15,hp:800,maxHp:800});
+        }
+        
+        function resolveObstacleCollision(e) { 
+            obstacles.concat(cactusWalls||[]).forEach(o=>{ let d=getDist(e,o); if(d<e.radius+o.radius){ let ov=(e.radius+o.radius)-d; e.x+=((e.x-o.x)/d)*ov; e.y+=((e.y-o.y)/d)*ov; if(e!==player&&(Math.abs(e.kbX)>5||Math.abs(e.kbY)>5)){e.kbX=e.kbY=0;e.hp-=500;addFloatingNumber(e.x,e.y,"DUVAR STUN!","#f1c40f");if(o.hp!==undefined)o.hp-=200;} } }); 
+            if(e!==player&&(Math.abs(e.kbX)>5||Math.abs(e.kbY)>5)&&(e.x<=WALL_THICKNESS+e.radius+2||e.x>=canvas.width-WALL_THICKNESS-e.radius-2||e.y<=WALL_THICKNESS+e.radius+2||e.y>=canvas.height-WALL_THICKNESS-e.radius-2)){e.kbX=e.kbY=0;e.hp-=500;addFloatingNumber(e.x,e.y,"DUVAR STUN!","#f1c40f");}
+        }
+
+        function spawnShrapnel(x,y) { for(let i=0;i<6;i++){ let a=(i*Math.PI*2)/6; bullets.push({x:x,y:y,sx:x,sy:y,vx:Math.cos(a)*(PLAYER_BULLET_SPEED*.7),vy:Math.sin(a)*(PLAYER_BULLET_SPEED*.7),type:'shrapnel',bounces:1,hitTargets:[]}); } }
+        
+        function triggerBotKill(xOrigin, killedEntity) { 
+            if(typeof window.GAME_EXT.hooks.onEnemyKilled === 'function' && killedEntity) { window.GAME_EXT.hooks.onEnemyKilled(killedEntity); }
+            botsKilled++; if(botsKilled>=7&&!bot2.isActive){bot2.isActive=bot2.isDead=true;bot2.respawnTimer=0;bot2.nextSpawnX=xOrigin?(canvas.width-xOrigin):(canvas.width/2);bot2.nextSpawnY=Math.random()*(canvas.height-240)+120;} 
+            if(botsKilled%10===0&&lastNestKillCount!==botsKilled) { lastNestKillCount=botsKilled; nests.push({x:Math.random()*(canvas.width-200)+100,y:Math.random()*(canvas.height-200)+100,radius:40,color:'#27ae60',isNest:true,speed:0,hp:3000,maxHp:3000,isDead:false,kbX:0,kbY:0,alerted:false,lastSpawn:Date.now(),spawnCount:0,bombaBulasti:false,bombaSayaci:0}); addFloatingNumber(canvas.width/2,canvas.height/2,"BOT YUVASI KURULDU!","#2ecc71"); }
+        }
+
+        function chargeUlti(amount) {
+            if(!gameStarted||player.ultReady||!['spike','ninja','hayalet','sam'].includes(player.charType))return;
+            player.ultCharge=Math.min(100,player.ultCharge+amount);
+            if(player.ultCharge===100){player.ultReady=true;ultiBtn.classList.add('ready');addFloatingNumber(player.x,player.y-40,"GÜÇ HAZIR!","#f1c40f");}
+            if(ultFill)ultFill.style.width=player.ultCharge+"%";
+        }
+        function addFloatingNumber(x,y,v,c,charge){floatingNumbers.push({x:x+(Math.random()-.5)*40,y:y-20,val:v,color:c,life:60,opacity:1}); if(player.charType==='hayalet'){ if(charge===true) chargeUlti(12); return; } if(c!=="#e74c3c"&&!isNaN(parseInt(v))){if(player.charType==='ninja'&&c==="#2ecc71")return; chargeUlti(12);} }
+
+        ['spike','ninja','hayalet','sam'].forEach(c=>document.getElementById('char-'+c).addEventListener('click',()=>{selectedCharacter=c;document.querySelectorAll('.char-card').forEach(e=>e.classList.remove('selected'));document.getElementById('char-'+c).classList.add('selected');}));
+        
+        const setupBtnAim=(btn,aimObj,checkFunc,actionFunc)=>{
+            const start=(cx,cy)=>{
+                if(!checkFunc()||player.isDead)return;
+                if(btn === ultiBtn && player.charType === 'spike') {
+                    player.ultiHazirlik = true;
+                    btn.style.boxShadow = '0 0 30px #e74c3c';
+                    addFloatingNumber(player.x, player.y - 40, "GÜÇ YÜKLENDİ!", "#e74c3c");
+                    return; 
+                }
+                aimObj.active=true;let r=btn.getBoundingClientRect();aimObj.x=r.left+r.width/2;aimObj.y=r.top+r.height/2;aimObj.angle=player.angle;aimObj.pull=0;
+            };
+            const move=(cx,cy)=>{if(aimObj.active){aimObj.angle=getAngle(aimObj,{x:cx,y:cy});aimObj.pull=Math.min(1,getDist(aimObj,{x:cx,y:cy})/160);}};
+            const end=()=>{if(!aimObj.active)return;aimObj.active=false;actionFunc(aimObj.angle,aimObj.pull<0.05?1:aimObj.pull);};
+            btn.addEventListener('touchstart',e=>{e.preventDefault();start(e.changedTouches[0].clientX,e.changedTouches[0].clientY);});
+            btn.addEventListener('touchmove',e=>{e.preventDefault();move(e.changedTouches[0].clientX,e.changedTouches[0].clientY);});
+            btn.addEventListener('touchend',e=>{e.preventDefault();end();});
+            btn.addEventListener('mousedown',e=>{start(e.clientX,e.clientY);aimObj.isMouse=true;});
+            window.addEventListener('mouseup',e=>{if(aimObj.isMouse){aimObj.isMouse=false;end();}});
+        };
+        setupBtnAim(ultiBtn,ultAim,()=>player.ultReady,(ang)=>player.fireUlti(ang));
+        setupBtnAim(gadgetBtn,gadAim,()=>player.gadgetReady,(ang,pull)=>player.activateGadget(ang,pull));
+        setupBtnAim(gadgetBtn2,gadAim2,()=>player.gadget2Ready,(ang,pull)=>player.activateGadget2(ang,pull));
+
+        function setupJoystick(id,kId,data,isAim){
+            const el=document.getElementById(id),knob=document.getElementById(kId);let center={x:0,y:0};
+            const move=(cX,cY)=>{let dx=cX-center.x,dy=cY-center.y,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);if(d>70){dx=Math.cos(a)*70;dy=Math.sin(a)*70;}knob.style.transform=`translate(${dx}px,${dy}px)`;data.x=dx/70;data.y=dy/70;data.angle=a;};
+            const start=(cX,cY)=>{if(!gameStarted||data.active||player.isDead)return false;const r=el.getBoundingClientRect();center={x:r.left+r.width/2,y:r.top+r.height/2};data.active=true;move(cX,cY);return true;};
+            const end=()=>{if(!data.active)return;const spikeUltiHazir=player.charType==='spike'&&player.ultiHazirlik;if(isAim&&!player.isDead&&Date.now()-player.lastShotTime>200&&((player.ammo>=1&&Math.hypot(data.x,data.y)>.4)||spikeUltiHazir))player.fire(data.angle);data.active=data.isMouse=false;data.touchId=null;data.x=data.y=0;knob.style.transform=`translate(0,0)`;};
+            el.addEventListener('touchstart',e=>{e.preventDefault();const t=e.changedTouches[0];if(start(t.clientX,t.clientY))data.touchId=t.identifier},{passive:false});
+            window.addEventListener('touchmove',e=>{if(!data.active)return;for(let i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===data.touchId)move(e.changedTouches[i].clientX,e.changedTouches[i].clientY)},{passive:false});
+            window.addEventListener('touchend',e=>{for(let i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===data.touchId)end()});
+            el.addEventListener('mousedown',e=>{if(start(e.clientX,e.clientY))data.isMouse=true});window.addEventListener('mousemove',e=>{if(data.active&&data.isMouse)move(e.clientX,e.clientY)});window.addEventListener('mouseup',()=>{if(data.active&&data.isMouse)end()});
+        }
+        setupJoystick('left-joystick','left-knob',moveData,false); setupJoystick('right-joystick','right-knob',aimData,true);
+
+        // Bilgisayar (klavye + fare) desteği - mobil kontrolleri bozmadan ek olarak çalışır
+        const keysPressed = {};
+        let lastMouseX = window.innerWidth/2, lastMouseY = window.innerHeight/2;
+        function mouseAngle() { return Math.atan2(lastMouseY - player.y, lastMouseX - player.x); }
+        function updateKeyboardMovement() {
+            let dx = 0, dy = 0;
+            if (keysPressed['KeyW'] || keysPressed['ArrowUp']) dy -= 1;
+            if (keysPressed['KeyS'] || keysPressed['ArrowDown']) dy += 1;
+            if (keysPressed['KeyA'] || keysPressed['ArrowLeft']) dx -= 1;
+            if (keysPressed['KeyD'] || keysPressed['ArrowRight']) dx += 1;
+            if (dx !== 0 || dy !== 0) {
+                const len = Math.hypot(dx, dy);
+                moveData.x = dx / len; moveData.y = dy / len;
+                moveData.angle = Math.atan2(dy, dx);
+                moveData.active = true; moveData.keyboard = true;
+            } else if (moveData.keyboard) {
+                moveData.active = false; moveData.x = 0; moveData.y = 0; moveData.keyboard = false;
+            }
+        }
+        window.addEventListener('keydown', e => {
+            if (!gameStarted || player.isDead) return;
+            if (!keysPressed[e.code]) {
+                // Q: birincil yetenek, E: ikincil yetenek, R: güç (fare yönünde)
+                if (e.code === 'KeyQ' && player.gadgetReady && !gadAim.active) { gadAim.active = true; gadAim.isMouse = true; gadAim.angle = mouseAngle(); }
+                if (e.code === 'KeyE' && player.gadget2Ready && !gadAim2.active) { gadAim2.active = true; gadAim2.isMouse = true; gadAim2.angle = mouseAngle(); }
+                if (e.code === 'KeyR' && player.ultReady && !player.isDead) {
+                    if (player.charType === 'spike') {
+                        player.ultiHazirlik = true; ultiBtn.style.boxShadow = '0 0 30px #e74c3c';
+                        addFloatingNumber(player.x, player.y - 40, "GÜÇ YÜKLENDİ!", "#e74c3c");
+                    } else if (!ultAim.active) { ultAim.active = true; ultAim.isMouse = true; ultAim.angle = mouseAngle(); }
+                }
+            }
+            keysPressed[e.code] = true; updateKeyboardMovement();
+        });
+        window.addEventListener('keyup', e => {
+            keysPressed[e.code] = false; updateKeyboardMovement();
+            if (e.code === 'KeyQ' && gadAim.active) {
+                gadAim.active = false; gadAim.isMouse = false;
+                let pull = Math.min(1, Math.hypot(lastMouseX - player.x, lastMouseY - player.y) / (RANGE * 0.8));
+                player.activateGadget(mouseAngle(), pull);
+            }
+            if (e.code === 'KeyE' && gadAim2.active) {
+                gadAim2.active = false; gadAim2.isMouse = false;
+                let pull = Math.min(1, Math.hypot(lastMouseX - player.x, lastMouseY - player.y) / (RANGE*0.65));
+                player.activateGadget2(mouseAngle(), pull);
+            }
+            if (e.code === 'KeyR') {
+                if (player.charType === 'spike' && player.ultiHazirlik) {
+                    let pull = Math.min(1, Math.hypot(lastMouseX - player.x, lastMouseY - player.y) / (RANGE * 0.9));
+                    player.fire(mouseAngle(), pull);
+                    ultiBtn.style.boxShadow = '';
+                } else if (ultAim.active) {
+                    ultAim.active = false; ultAim.isMouse = false; player.fireUlti(mouseAngle());
+                }
+            }
+        });
+
+        canvas.addEventListener('click', e => {
+            if (!gameStarted || player.isDead) return;
+            const spikeUltiHazir = player.charType === 'spike' && player.ultiHazirlik;
+            if (!spikeUltiHazir && player.ammo < 1) return;
+            if (Date.now() - player.lastShotTime <= 200) return;
+            const angle = Math.atan2(e.clientY - player.y, e.clientX - player.x);
+            if (spikeUltiHazir) {
+                let pull = Math.min(1, Math.hypot(e.clientX - player.x, e.clientY - player.y) / (RANGE * 0.9));
+                player.fire(angle, pull);
+            } else {
+                player.fire(angle);
+            }
+        });
+        canvas.addEventListener('mousemove', e => {
+            lastMouseX = e.clientX; lastMouseY = e.clientY;
+            player.angle = Math.atan2(e.clientY - player.y, e.clientX - player.x);
+            if (ultAim.active && ultAim.isMouse) ultAim.angle = player.angle;
+            if (gadAim.active && gadAim.isMouse) { gadAim.angle = player.angle; gadAim.pull = Math.min(1, Math.hypot(lastMouseX - player.x, lastMouseY - player.y) / (RANGE * 0.8)); }
+            if (gadAim2.active && gadAim2.isMouse) { gadAim2.angle = player.angle; gadAim2.pull = Math.min(1, Math.hypot(lastMouseX - player.x, lastMouseY - player.y) / (RANGE*0.65)); }
+        });
+        function spawnSlimeBot(x,y,stage) { let h=getSlimeHp(); slimeBots.push({x,y,radius:stage===0?30:(stage===1?20:12),color:'#2ecc71',speed:getBotSpeed(1),hp:h,maxHp:h,stage,isDead:false,angle:0,kbX:0,kbY:0,alerted:false,bombaBulasti:false,bombaSayaci:0,ghostRingDebounce:0,evolveTimer:0}); }
+        
+        const startGame=()=>{ 
+            bot.speed = getBotSpeed(1.36); bot2.speed = getBotSpeed(1.76);
+            bot.hp = bot.maxHp = getBotHp(3000); bot2.hp = bot2.maxHp = getBotHp(3000);
+            player.setCharacter(selectedCharacter); document.getElementById('start-screen').style.display='none'; 
+            document.getElementById('left-joystick').style.display=document.getElementById('right-joystick').style.display=gadgetBtn.style.display='flex'; 
+            const activeModeOnStart = window.GAME_EXT.modes[window.GAME_MODE];
+            if(activeModeOnStart && typeof activeModeOnStart.onStart === 'function') activeModeOnStart.onStart();
+            
+            if (['spike','ninja','hayalet','sam'].includes(selectedCharacter)) {
+                ultiBtn.style.display = 'flex';
+                gadgetBtn.style.display = 'flex';
+                gadgetBtn2.style.display = (selectedCharacter === 'ninja' || selectedCharacter === 'sam' || selectedCharacter === 'hayalet' || selectedCharacter === 'spike') ? 'flex' : 'none';
+            } else {
+                ultiBtn.style.display = 'none';
+                gadgetBtn.style.display = 'none';
+                gadgetBtn2.style.display = 'none';
+            }
+
+            if (selectedCharacter === 'ninja') {
+                gadgetBtn.innerHTML = 'ALAN<br><span id="gadget-timer"></span>';
+                gadgetBtn2.innerHTML = 'SIÇRAYIŞ<br><span id="gadget-timer-2"></span>';
+            } else if (selectedCharacter === 'sam') {
+                gadgetBtn.innerHTML = 'ÇEKİM<br><span id="gadget-timer"></span>';
+                gadgetBtn2.innerHTML = 'DEV<br>SIÇRAYIŞI<br><span id="gadget-timer-2"></span>';
+            } else if (selectedCharacter === 'hayalet') {
+                gadgetBtn.innerHTML = 'PATLAT<br><span id="gadget-timer"></span>';
+                gadgetBtn2.innerHTML = 'RUH<br>ÇIKAR<br><span id="gadget-timer-2"></span>';
+            } else if (selectedCharacter === 'spike') {
+                gadgetBtn.innerHTML = 'GİRDAP<br><span id="gadget-timer"></span>';
+                gadgetBtn2.innerHTML = 'DİKEN<br>FIRLATMA<br><span id="gadget-timer-2"></span>';
+            }
+
+            gadgetTimerText = document.getElementById('gadget-timer');
+            gadgetTimerText2 = document.getElementById('gadget-timer-2');
+
+            slimeBots=[]; stationaryBots=[]; boomerangBots=[]; nests=[]; fogBots=[]; lastNestKillCount=0;
+            slimeTimer=0; stationaryTimer=0; boomerangTimer=0; fogBotTimer=0; fogAreas=[]; spawnIndicators=[]; ghostZones=[]; specialSouls=[]; if(typeof window.GAME_EXT.hooks.onReset==='function')window.GAME_EXT.hooks.onReset();
+            obstacles=[]; particles=[]; spikeFields=[]; samGloves=[]; souls=[]; cactusWalls=[]; explosions=[]; 
+            lastObstacleTime=Date.now(); screenShake=0; gameStarted=true; lastTime=performance.now(); 
+        };
+        window.startGame = startGame;
+        document.getElementById('title-play-btn').addEventListener('click',()=>{document.getElementById('title-screen').style.display='none';document.getElementById('start-screen').style.display='flex';});
+        document.getElementById('start-btn').addEventListener('click',()=>{document.getElementById('start-screen').style.display='none';document.getElementById('difficulty-screen').style.display='flex';});
+        document.getElementById('start-btn').addEventListener('touchstart',e=>{e.preventDefault();document.getElementById('start-screen').style.display='none';document.getElementById('difficulty-screen').style.display='flex';});
+
+        // Mod seçim ekranı: dokunarak veya kaydırarak seçim
+        let selectedDifficulty = 'normal';
+        const diffCards = [document.getElementById('diff-normal'), document.getElementById('diff-easy')];
+        const diffTrack = document.getElementById('difficulty-track');
+        function selectDifficulty(diff) {
+            selectedDifficulty = diff;
+            diffCards.forEach(c => c.classList.remove('selected'));
+            document.getElementById(diff === 'easy' ? 'diff-easy' : 'diff-normal').classList.add('selected');
+        }
+        document.getElementById('diff-normal').addEventListener('click', () => { selectDifficulty('normal'); diffTrack.scrollTo({top:0, behavior:'smooth'}); });
+        document.getElementById('diff-easy').addEventListener('click', () => { selectDifficulty('easy'); diffTrack.scrollTo({top:diffTrack.scrollHeight, behavior:'smooth'}); });
+        // Kaydırma bittiğinde en ortadaki/en yakın kartı otomatik seçili yap
+        let diffScrollTimeout = null;
+        diffTrack.addEventListener('scroll', () => {
+            clearTimeout(diffScrollTimeout);
+            diffScrollTimeout = setTimeout(() => {
+                const trackCenter = diffTrack.scrollTop + diffTrack.clientHeight / 2;
+                let closest = diffCards[0], closestDist = Infinity;
+                diffCards.forEach(c => {
+                    const cardCenter = c.offsetTop + c.offsetHeight / 2;
+                    const dist = Math.abs(cardCenter - trackCenter);
+                    if (dist < closestDist) { closestDist = dist; closest = c; }
+                });
+                selectDifficulty(closest.id === 'diff-easy' ? 'easy' : 'normal');
+            }, 100);
+        }, {passive:true});
+        document.getElementById('difficulty-start-btn').addEventListener('click', () => {
+            window.GAME_DIFFICULTY = selectedDifficulty;
+            document.getElementById('difficulty-screen').style.display = 'none';
+            startGame();
+        });
+        document.getElementById('difficulty-start-btn').addEventListener('touchstart', e => {
+            e.preventDefault();
+            window.GAME_DIFFICULTY = selectedDifficulty;
+            document.getElementById('difficulty-screen').style.display = 'none';
+            startGame();
+        });
+
+        document.getElementById('restart-btn').addEventListener('click',()=>{
+            gameStarted = false;
+            player.isDead = false;
+            player.x = 150; player.y = 300;
+            document.getElementById('game-over-screen').style.display = 'none';
+            document.getElementById('left-joystick').style.display = 'none';
+            document.getElementById('right-joystick').style.display = 'none';
+            gadgetBtn.style.display = 'none';
+            gadgetBtn2.style.display = 'none';
+            ultiBtn.style.display = 'none';
+            gadgetBtn.classList.remove('cooldown','active');
+            gadgetBtn2.classList.remove('cooldown');
+
+            Object.assign(bot,{isActive:true,hp:bot.maxHp,x:canvas.width-150,y:300,isDead:false,respawnTimer:0,kbX:0,kbY:0,alerted:false,bombaBulasti:false,bombaSayaci:0,ghostRingDebounce:0});
+            Object.assign(bot2,{isActive:false,isDead:true,respawnTimer:-9999,alerted:false,bombaBulasti:false,bombaSayaci:0,ghostRingDebounce:0});
+            botsKilled=screenShake=0; slimeBots=[]; stationaryBots=[]; boomerangBots=[]; nests=[]; fogBots=[]; lastNestKillCount=0;
+            slimeTimer=0; stationaryTimer=0; boomerangTimer=0; fogBotTimer=0; fogAreas=[]; spawnIndicators=[]; ghostZones=[]; specialSouls=[]; if(typeof window.GAME_EXT.hooks.onReset==='function')window.GAME_EXT.hooks.onReset();
+            obstacles=[]; particles=[]; spikeFields=[]; samGloves=[]; souls=[]; cactusWalls=[]; explosions=[]; lastObstacleTime=Date.now(); bullets=[]; botBullets=[]; floatingNumbers=[];
+
+            document.getElementById('start-screen').style.display = 'flex';
+        });
+
+        function drawBullet(b,c) {
+            ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(b.type==='sam_return'||b.type==='boomerang'?Date.now()/100:Math.atan2(b.vy,b.vx)); ctx.beginPath();
+            const drawArc=(rad,fill,stroke)=>{ctx.arc(0,0,rad,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=3;ctx.stroke();}};
+            if(b.type==='shrapnel') drawArc(4,c); else if(b.type==='tsunami') drawArc(25,'rgba(52,152,219,.9)','#2980b9'); 
+            else if(b.type==='sam_super'||b.type==='sam_return') drawArc(18,'#c0392b',b.type==='sam_return'?'#f1c40f':'#fff');
+            else if(b.type==='sam_punch_heavy') drawArc(12,'#c0392b'); else if(b.type==='sam_punch_light') drawArc(8,'#e74c3c'); else if(b.type==='ninja_bomb_bullet') drawArc(12,'#e67e22','#f1c40f'); else if(b.type==='hayalet_soul') drawArc(14,'#bdc3c7','#00ffff');
+            else if(b.type==='sprout_bullet' || b.type==='ninja_gadget_throw' || b.type==='spike_ulti_throw') {
+                let scale=1, sOff=0;
+                if(b.lobbed&&!b.isLanded){ let h=Math.sin((b.flightProgress||0)*Math.PI); scale=1+h*1.2; sOff=h*25; }
+                if(sOff>0){ctx.save();ctx.translate(0,sOff);ctx.scale(1/scale,0.5/scale);ctx.beginPath();ctx.arc(0,0,10,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fill();ctx.restore();}
+                ctx.scale(scale,scale); drawArc(10, (b.type==='ninja_gadget_throw'||b.type==='spike_ulti_throw')?'#2ecc71':(b.isVortex ? '#8e44ad' : '#2ecc71'), '#27ae60');
+            }
+            else if(b.type==='boomerang') { ctx.fillStyle='#00ced1';ctx.moveTo(15,0);ctx.lineTo(-10,10);ctx.lineTo(-5,0);ctx.lineTo(-10,-10);ctx.closePath();ctx.fill(); }
+            else { ctx.fillStyle={stationary_bot_bullet:'#e67e22',ninja_bullet:'#e67e22',hayalet_bullet:'#bdc3c7',spike_thorn:'#f1c40f'}[b.type]||c; ctx.moveTo(-10,-6);ctx.lineTo(5,-6);ctx.quadraticCurveTo(13,0,5,6);ctx.lineTo(-10,6);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(255,255,255,.4)';ctx.fillRect(-5,-3,6,3); } ctx.restore();
+        }
+
+        function updateBulletLogic(list, isBot, ts) {
+            for(let i=list.length-1;i>=0;i--) {
+                let b=list[i]; 
+                if(b.type==='sam_return') { let ang=getAngle(b,player); b.vx=Math.cos(ang)*20; b.vy=Math.sin(ang)*20; if(getDist(player,b)<player.radius+30){ player.hasGloves=true; player.speed=player.originalSpeed; player.reloadSpeed=0.015; let heal=Math.floor(250+((b.distInfo||0)*1)); player.hp=Math.min(player.maxHp,player.hp+heal); addFloatingNumber(player.x,player.y,"+"+heal,"#2ecc71"); chargeUlti(100); list.splice(i,1); continue; } }
+                
+                let speedMult=1; if(isBot&&player.charType==='ninja'&&player.ninjaZoneActive) if(getDist(b,{x:player.ninjaZoneX,y:player.ninjaZoneY})<player.ninjaZoneRadius) speedMult=0.35; 
+                
+                if (b.type === 'ninja_gadget_throw') {
+                    let d = getDist(b, {x:b.targetX, y:b.targetY});
+                    let move = PLAYER_BULLET_SPEED * 1.3 * ts;
+                    if (d <= move) {
+                        player.ninjaZoneActive = true; player.ninjaZoneX = b.targetX; player.ninjaZoneY = b.targetY; player.ninjaZoneTimer = 360; 
+                        spawnParticles(b.targetX, b.targetY, '#2ecc71', 'normal');
+                        addFloatingNumber(b.targetX, b.targetY, "ZAMAN ALANI!", "#2ecc71");
+                        list.splice(i, 1);
+                    } else {
+                        let ang = Math.atan2(b.targetY - b.y, b.targetX - b.x);
+                        b.x += Math.cos(ang) * move; b.y += Math.sin(ang) * move;
+                        b.flightProgress = 1 - (d / getDist({x:b.sx, y:b.sy}, {x:b.targetX, y:b.targetY}));
+                    }
+                    continue; 
+                }
+
+                if (b.type === 'spike_ulti_throw') {
+                    let d = getDist(b, {x:b.targetX, y:b.targetY});
+                    let move = PLAYER_BULLET_SPEED * 1.3 * ts;
+                    if (d <= move) {
+                        if(cactusWalls.length >= 7) cactusWalls.shift();
+                        cactusWalls.push({x:b.targetX, y:b.targetY, radius:45, hp:2000, maxHp:2000});
+                        spawnParticles(b.targetX, b.targetY, '#2ecc71', 'normal');
+                        list.splice(i, 1);
+                    } else {
+                        let ang = Math.atan2(b.targetY - b.y, b.targetX - b.x);
+                        b.x += Math.cos(ang) * move; b.y += Math.sin(ang) * move;
+                        b.flightProgress = 1 - (d / getDist({x:b.sx, y:b.sy}, {x:b.targetX, y:b.targetY}));
+                    }
+                    continue; 
+                }
+
+                if (b.type === 'sprout_bullet') {
+                    if (b.lobbed && !b.isLanded) {
+                        let d = getDist(b, {x:b.targetX, y:b.targetY});
+                        let move = PLAYER_BULLET_SPEED * 1.3 * ts;
+                        if (d <= move) {
+                            b.x = b.targetX; b.y = b.targetY; b.isLanded = true;
+                            let ang = Math.atan2(b.targetY - b.sy, b.targetX - b.sx);
+                            b.vx = Math.cos(ang) * PLAYER_BULLET_SPEED * 0.7; b.vy = Math.sin(ang) * PLAYER_BULLET_SPEED * 0.7;
+                        } else {
+                            let ang = Math.atan2(b.targetY - b.y, b.targetX - b.x);
+                            b.x += Math.cos(ang) * move; b.y += Math.sin(ang) * move;
+                            b.flightProgress = 1 - (d / getDist({x:b.sx, y:b.sy}, {x:b.targetX, y:b.targetY}));
+                        }
+                        continue; 
+                    } else {
+                        b.lifeTimer -= ts;
+                        let explode = false;
+                        if (b.lifeTimer <= 0) explode = true;
+                        b.x += b.vx * ts; b.y += b.vy * ts;
+                        let hwX = b.x < WALL_THICKNESS + 10 || b.x > canvas.width - (WALL_THICKNESS + 10);
+                        let hwY = b.y < WALL_THICKNESS + 10 || b.y > canvas.height - (WALL_THICKNESS + 10);
+                        let hitObs = false;
+                        for(let o of obstacles.concat(cactusWalls||[])) { if(getDist(b,o) < o.radius + 10) { hitObs = true; break; } }
+                        
+                        if(hwX || hwY || hitObs) {
+                            if(b.bounces > 0) {
+                                if(hwX) { b.vx *= -1; b.x = b.x < canvas.width/2 ? WALL_THICKNESS+11 : canvas.width - WALL_THICKNESS - 11; }
+                                if(hwY) { b.vy *= -1; b.y = b.y < canvas.height/2 ? WALL_THICKNESS+11 : canvas.height - WALL_THICKNESS - 11; }
+                                if(hitObs) { b.vx *= -1; b.vy *= -1; b.x+=b.vx; b.y+=b.vy; }
+                                b.bounces--;
+                            } else { explode = true; }
+                        }
+                        let hitE = false;
+                        getActiveEnemies().forEach(e => { if(getDist(b,e) < e.radius + 15) hitE = true; });
+                        if(hitE) explode = true;
+                        
+                        if (explode) {
+                            spawnParticles(b.x, b.y, b.isVortex ? '#8e44ad' : '#2ecc71', 'normal');
+                            let rad = b.isVortex ? 200 : 110; let hitAny = false;
+                            getActiveEnemies().forEach(ot => {
+                                if (getDist(b, ot) < rad + ot.radius) {
+                                    ot.hp -= 900; addFloatingNumber(ot.x, ot.y, "900", "#2ecc71"); hitAny = true;
+                                    if(b.isVortex) { let ang = getAngle(b, ot); ot.kbX = -Math.cos(ang) * 75; ot.kbY = -Math.sin(ang) * 75; }
+                                }
+                            });
+                            if(b.isVortex) addFloatingNumber(b.x, b.y, "GİRDAP!", "#8e44ad"); else if(hitAny) chargeUlti(12);
+                            list.splice(i,1);
+                        }
+                        continue;
+                    }
+                }
+
+                b.x+=b.vx*speedMult*ts; b.y+=b.vy*speedMult*ts;
+                
+                if(b.type==='sam_super') { let hw=b.x<WALL_THICKNESS+20||b.x>canvas.width-WALL_THICKNESS-20||b.y<WALL_THICKNESS+20||b.y>canvas.height-WALL_THICKNESS-20; if(hw||getDist(b,{x:b.sx,y:b.sy})>SAM_ULTI_RANGE){ samGloves.push({x:b.x,y:b.y,dist:getDist(b,{x:b.sx,y:b.sy})}); spawnParticles(b.x,b.y,'#c0392b','normal'); list.splice(i,1); continue; } }
+                
+                let hwX=b.x<WALL_THICKNESS+5||b.x>canvas.width-(WALL_THICKNESS+5), hwY=b.y<WALL_THICKNESS+5||b.y>canvas.height-(WALL_THICKNESS+5), hw=hwX||hwY;
+                let cR=b.type==='sam_super'?SAM_ULTI_RANGE:b.type==='ninja_bullet'?RANGE*.65:b.type==='hayalet_bullet'||b.type==='hayalet_soul'?430:b.type==='shrapnel'?RANGE*.6:b.type==='sam_punch_heavy'||b.type==='sam_punch_light'?95:b.type==='stationary_bot_bullet'?9999:b.type==='spike_thorn'?RANGE*.5:RANGE;
+                if(b.type==='ninja_bomb_bullet') cR=RANGE*1.5; if(b.type==='boomerang') cR=RANGE*2.5;
+                let oor=getDist(b,{x:b.sx,y:b.sy})>cR*(b.rangeMod||1), hitObs=false; if(b.type==='sam_return'){hw=false;oor=false;} 
+
+                for(let o of obstacles.concat(cactusWalls||[])) { if(getDist(b,o)<o.radius+5) { if(!isBot&&player.charType==='spike'&&player.isRooted&&b.type==='main') {if(cactusWalls.includes(o))continue;} if(b.type==='spike_thorn'&&cactusWalls.includes(o)) { o.hp=Math.min(o.maxHp,o.hp+50); addFloatingNumber(o.x,o.y,"+50","#2ecc71"); hitObs=true; break; } let obsDmg=isBot?100:150; if(b.type==='boomerang') obsDmg+=100; o.hp-=obsDmg; if(!isBot&&b.type==='main')spawnShrapnel(b.x,b.y); hitObs=true; break; } }
+                
+                if(b.type==='boomerang') { if(!b.returning&&(hw||hitObs||oor)){b.returning=true;b.hitTargets=[];hw=false;hitObs=false;oor=false;} else if(b.returning){hw=false;oor=false;hitObs=false;if(b.owner&&b.owner.hp>0&&!b.owner.isDead){let ang=getAngle(b,b.owner);b.vx=Math.cos(ang)*BOT_BULLET_SPEED*1.0;b.vy=Math.sin(ang)*BOT_BULLET_SPEED*1.0;if(getDist(b,b.owner)<b.owner.radius+15){list.splice(i,1);continue;}}else{list.splice(i,1);continue;}} }
+                
+                if(hitObs&&b.type!=='sam_return'){ if(b.type==='sam_super'){samGloves.push({x:b.x,y:b.y,dist:getDist(b,{x:b.sx,y:b.sy})});spawnParticles(b.x,b.y,'#c0392b','normal');} list.splice(i,1); continue; }
+                
+                if(hw||oor){ if(!isBot&&b.type==='main'){spawnShrapnel(b.x,b.y);list.splice(i,1);} else if(!isBot&&b.type==='shrapnel'&&hw&&b.bounces>0&&!oor){if(hwX){b.vx*=-1;b.x=b.x<canvas.width/2?WALL_THICKNESS+6:canvas.width-(WALL_THICKNESS+6)}if(hwY){b.vy*=-1;b.y=b.y<canvas.height/2?WALL_THICKNESS+6:canvas.height-(WALL_THICKNESS+6)}b.bounces--;b.sx=b.x;b.sy=b.y;} else list.splice(i,1); continue; }
+                
+                let pT = isBot ? [player, ...((typeof window.GAME_EXT.hooks.getExtraTargets === 'function') ? (window.GAME_EXT.hooks.getExtraTargets() || []) : [])] : getActiveEnemies();
+                for(let t of pT){
+                    if(isBot&&t===player&&(player.isDashing||player.jumpInvulnerable))continue;
+                    if(getDist(b,t)<t.radius+(b.type==='tsunami'||b.type==='sam_super'||b.type==='sam_return'?28:12)){
+                        if(!isBot){
+                            if(!b.hitTargets)b.hitTargets=[]; if(b.hitTargets.includes(t))continue;
+                            const dmMap={'sam_return':{d:800,c:"#c0392b",push:true},'sam_super':{d:1400,c:"#c0392b",push:true},'sam_punch_heavy':{d:1200,c:"#fff",rm:true},'sam_punch_light':{d:700,c:"#fff",rm:true},'ninja_bomb_bullet':{d:50,c:"#e67e22",rm:true,infect:true},'main':{d:150,c:"#fff",rm:true,shrapnel:true},'shrapnel':{d:80,c:"#fff",push:true},'ninja_bullet':{d:300,c:"#e67e22",rm:true,heal:100},'tsunami':{d:800,c:"#3498db",push:true,slow:180},'spike_thorn':{d:200,c:"#f1c40f",rm:true}};
+                            if(b.type==='hayalet_bullet') { 
+                                let calc=getDist(b,{x:b.sx,y:b.sy})<65?1250:800;
+                                t.hp-=calc;addFloatingNumber(t.x,t.y,calc,"#95a5a6",true); 
+                                if(b.soulRelease){
+                                    specialSouls.push({x:t.x,y:t.y,radius:100,life:600,tickTimer:0});
+                                    spawnParticles(t.x,t.y,'#00ffff','normal');
+                                    addFloatingNumber(t.x,t.y-20,"RUH ÇIKARILDI!","#00ffff");
+                                } else if(++player.hayaletHitCount>=2){
+                                    let ang=getAngle(player,t);
+                                    bullets.push({x:player.x,y:player.y,sx:player.x,sy:player.y,vx:Math.cos(ang)*15,vy:Math.sin(ang)*15,type:'hayalet_soul',hitTargets:[]});
+                                    player.hayaletHitCount=0;
+                                }
+                                list.splice(i,1);break; 
+                            } else if(b.type==='hayalet_soul') {
+                                t.hp-=800; addFloatingNumber(t.x,t.y,800,"#00ffff",true);
+                                if(b.soulRelease){
+                                    specialSouls.push({x:t.x,y:t.y,radius:100,life:600,tickTimer:0});
+                                    spawnParticles(t.x,t.y,'#00ffff','normal');
+                                    addFloatingNumber(t.x,t.y-20,"RUH ÇIKARILDI!","#00ffff");
+                                } else {
+                                    souls.push({x:t.x,y:t.y,life:540});
+                                }
+                                list.splice(i,1);break;
+                            }
+                            else if(dmMap[b.type]) { 
+                                let dm=dmMap[b.type];t.hp-=dm.d;addFloatingNumber(t.x,t.y,Math.floor(dm.d),dm.c); 
+                                
+                                if(b.type==='sam_punch_heavy'||b.type==='sam_punch_light'){
+                                    if(b.empowered){ t.kbX=Math.cos(Math.atan2(b.vy,b.vx))*20; t.kbY=Math.sin(Math.atan2(b.vy,b.vx))*20; }
+                                    if(!player.samRageActive){
+                                        player.samHitCount++;
+                                        if(player.samHitCount>=8){
+                                            player.samRageActive=true; player.samRageTimer=300; player.samHitCount=0;
+                                            addFloatingNumber(player.x,player.y-40,"ÖFKE!","#e74c3c"); spawnParticles(player.x,player.y,'#e74c3c','normal');
+                                        }
+                                    } else if(b.empowered){
+                                        if(!b.hasHealedSam) { player.hp=Math.min(player.maxHp,player.hp+600); addFloatingNumber(player.x,player.y,"+600","#2ecc71"); b.hasHealedSam=true; }
+                                        getActiveEnemies().forEach(oe=>{if(oe!==t&&getDist(oe,t)<95){oe.hp-=dm.d*0.5;addFloatingNumber(oe.x,oe.y,Math.floor(dm.d*0.5),"#f39c12");}}); spawnParticles(t.x,t.y,'#e74c3c','smoke');
+                                    }
+                                }
+
+                                if(dm.push)b.hitTargets.push(t);if(dm.shrapnel)spawnShrapnel(b.x,b.y); if(dm.heal){player.hp=Math.min(player.maxHp,player.hp+dm.heal);addFloatingNumber(player.x,player.y,"+"+dm.heal,"#2ecc71",true);} if(dm.infect&&!t.bombaBulasti){t.bombaBulasti=true;t.bombaSayaci=120;t.kbX=Math.cos(Math.atan2(b.vy,b.vx))*25;t.kbY=Math.sin(Math.atan2(b.vy,b.vx))*25;} if(dm.rm){list.splice(i,1);break;} 
+                            }
+                        } else {
+                            if(b.type==='boomerang'&&b.hitTargets&&b.hitTargets.includes(t))continue; 
+                            let d;
+                            if(b.type==='stationary_bot_bullet') d = window.GAME_DIFFICULTY==='easy' ? 300 : 350;
+                            else if(b.type==='boomerang') d = window.GAME_DIFFICULTY==='easy' ? 200 : 250;
+                            else d = window.GAME_DIFFICULTY==='easy' ? 480 : 500;
+                            if(t===player && player.charType==='sam'&&player.samRageActive) d*=0.6; 
+                            
+                            let actualDmg = d;
+                            t.hp -= actualDmg;
+                            if(actualDmg > 0) addFloatingNumber(t.x, t.y, Math.floor(actualDmg), "#e74c3c");
+
+                            if(t===player){ player.lastHitTime=Date.now(); if(player.isInvisible)player.isInvisible=player.invisTimer=0; }
+                            if(b.type==='boomerang'){if(!b.hitTargets)b.hitTargets=[];b.hitTargets.push(t);}else{list.splice(i,1);break;}
+                        }
+                    }
+                }
+            }
+        }
+        window.updateBulletLogic = updateBulletLogic;
+
+        // update ve draw fonksiyonları aynen korunuyor...
+        function update(ts) {
+            if(!gameStarted)return; if(screenShake>0)screenShake-=ts*.5;
+            const activeMode = window.GAME_EXT.modes[window.GAME_MODE];
+            if(activeMode && typeof activeMode.onUpdate === 'function') activeMode.onUpdate(ts);
+            for(let i=ghostZones.length-1; i>=0; i--) { ghostZones[i].timer-=ts; if(ghostZones[i].timer<=0)ghostZones.splice(i,1); }
+            ghostZones.forEach(z => {
+                z.tickTimer = (z.tickTimer||0) + ts;
+                let doTick = z.tickTimer >= 60;
+                if(doTick) z.tickTimer = 0;
+                getActiveEnemies().forEach(e => {
+                    if(getDist(z,e) < z.radius) {
+                        e.hp -= (150/60)*ts;
+                        if(doTick) addFloatingNumber(e.x, e.y, 150, "#bdc3c7");
+                    }
+                });
+                if(player.charType==='hayalet' && !player.isDead && getDist(player,z) < z.radius) {
+                    z.healTickTimer = (z.healTickTimer||0) + ts;
+                    if(z.healTickTimer >= 60) {
+                        z.healTickTimer = 0;
+                        player.hp = Math.min(player.maxHp, player.hp + 75);
+                        addFloatingNumber(player.x, player.y, "+75", "#2ecc71");
+                    }
+                }
+            });
+            if(player.charType==='hayalet'&&!player.isDead) {
+                if(player.revealTimer>0) player.revealTimer-=ts;
+                let currentZone = ghostZones.find(z => getDist(player, z) < z.radius);
+                let inGhostZone = !!currentZone;
+                if(inGhostZone && player.revealTimer<=0) {
+                    player.ghostZoneInvisAccum = (player.ghostZoneInvisAccum||0) + ts;
+                    currentZone.revealCycleTimer = (currentZone.revealCycleTimer||0) + ts;
+                    if(currentZone.revealCycleTimer >= 120) {
+                        // Pasif periyodik görünme: her 2 saniyede bir kısa süreliğine görünür olur, sonra otomatik tekrar gizlenir
+                        currentZone.revealCycleTimer = 0;
+                        player.isInvisible = false;
+                        player.revealTimer = 20;
+                    } else if(player.ghostZoneInvisAccum <= 360) {
+                        player.isInvisible=true;
+                        player.invisTimer=Math.max(player.invisTimer||0, 5); 
+                    }
+                    player.ghostZoneHealTimer = 0;
+                } else {
+                    player.ghostZoneInvisAccum = 0; player.ghostZoneHealTimer = 0;
+                }
+            }
+            for(let i=specialSouls.length-1; i>=0; i--) {
+                let s = specialSouls[i];
+                s.life -= ts;
+                if(s.life <= 0) { specialSouls.splice(i,1); continue; }
+                let elapsed = 600 - s.life;
+                if(elapsed < 240) {
+                    s.tickTimer = (s.tickTimer||0) + ts;
+                    let doTick = s.tickTimer >= 60;
+                    if(doTick) s.tickTimer = 0;
+                    getActiveEnemies().forEach(e => {
+                        if(getDist(s,e) < s.radius) {
+                            e.hp -= (300/60)*ts;
+                            if(doTick) addFloatingNumber(e.x, e.y, 300, "#00ffff");
+                        }
+                    });
+                }
+                if(player.charType==='hayalet' && !player.isDead && getDist(player,s) < player.radius+15) {
+                    player.hp = Math.min(player.maxHp, player.hp + 250);
+                    addFloatingNumber(player.x, player.y, "+250", "#2ecc71");
+                    player.isInvisible = true; player.invisTimer = 240;
+                    addFloatingNumber(player.x, player.y-20, "GÖRÜNMEZ!", "#95a5a6");
+                    specialSouls.splice(i,1);
+                }
+            }
+            let cBC=getActiveEnemies().length+spawnIndicators.length;
+            slimeTimer+=ts; stationaryTimer+=ts; boomerangTimer+=ts; fogBotTimer+=ts;
+            if(typeof window.GAME_EXT.hooks.onBotSpawnTick==='function')window.GAME_EXT.hooks.onBotSpawnTick(ts);
+            if(slimeTimer>960&&cBC<6){spawnIndicators.push({x:Math.random()*(canvas.width-200)+100,y:Math.random()*(canvas.height-200)+100,type:'slime',timer:180});slimeTimer=0;}
+            if(!window.GAME_MODE_DISABLED_BOT_TYPES.includes('stationary') && stationaryTimer>1500&&cBC<6){spawnIndicators.push({x:Math.random()*(canvas.width-200)+100,y:Math.random()*(canvas.height-200)+100,type:'stationary',timer:180});stationaryTimer=0;}
+            if(!window.GAME_MODE_DISABLED_BOT_TYPES.includes('boomerang') && boomerangTimer>1200&&cBC<6){spawnIndicators.push({x:Math.random()*(canvas.width-200)+100,y:Math.random()*(canvas.height-200)+100,type:'boomerang',timer:180});boomerangTimer=0;}
+            if(fogBotTimer>2700&&cBC<6){spawnIndicators.push({x:canvas.width/2,y:canvas.height/2,type:'fog',timer:180});fogBotTimer=0;}
+            for(let i=spawnIndicators.length-1;i>=0;i--){ spawnIndicators[i].timer-=ts; if(spawnIndicators[i].timer<=0){ let ind=spawnIndicators[i]; if(ind.type==='slime')spawnSlimeBot(ind.x,ind.y,ind.stage||0); if(ind.type==='stationary')stationaryBots.push({x:ind.x,y:ind.y,radius:25,color:'#e67e22',speed:0,hp:1500,maxHp:1500,isDead:false,angle:0,lastShot:0,shootInterval:750,kbX:0,kbY:0,alerted:false,bombaBulasti:false,bombaSayaci:0,ghostRingDebounce:0}); if(ind.type==='boomerang')boomerangBots.push({x:ind.x,y:ind.y,radius:20,color:'#00ced1',speed:getBotSpeed(0.5),hp:1600,maxHp:1600,isDead:false,angle:0,lastShot:0,shootInterval:1500,kbX:0,kbY:0,alerted:false,bombaBulasti:false,bombaSayaci:0,ghostRingDebounce:0}); if(ind.type==='fog'){fogBots.push({x:ind.x,y:ind.y,radius:35,color:'#7f8c8d',isFog:true,speed:getBotSpeed(1.0),hp:5000,maxHp:5000,isDead:false,angle:0,kbX:0,kbY:0,alerted:false,bombaBulasti:false,bombaSayaci:0,ghostRingDebounce:0});addFloatingNumber(ind.x,ind.y+40,"SİS BOTU GELDİ!","#7f8c8d");} spawnIndicators.splice(i,1); } }
+            for(let i=fogAreas.length-1;i>=0;i--){fogAreas[i].timer-=ts;if(fogAreas[i].timer<=0)fogAreas.splice(i,1);}
+            for(let i=explosions.length-1;i>=0;i--){let ex=explosions[i];ex.radius+=(ex.maxRadius/ex.maxLife)*ts;ex.life-=ts;if(ex.life<=0)explosions.splice(i,1);}
+            if(player.charType==='ninja'&&player.ninjaZoneActive){
+                player.ninjaZoneTimer-=ts;
+                if(player.ninjaZoneTimer<=0) player.ninjaZoneActive=false;
+                else {
+                    if(getDist(player,{x:player.ninjaZoneX,y:player.ninjaZoneY})<player.ninjaZoneRadius&&!player.isDead){
+                        let hA=(300/360)*ts; player.hp=Math.min(player.maxHp,player.hp+hA);
+                        if(Math.floor(player.ninjaZoneTimer)%30===0&&player.hp<player.maxHp) addFloatingNumber(player.x,player.y,"+25","#2ecc71");
+                    }
+                    getActiveEnemies().forEach(e=>{
+                        if(getDist(e,{x:player.ninjaZoneX,y:player.ninjaZoneY})<player.ninjaZoneRadius){
+                            e.hp-=(900/360)*ts; 
+                            if(Math.floor(player.ninjaZoneTimer)%30===0) addFloatingNumber(e.x,e.y,"75","#e67e22");
+                        }
+                    });
+                }
+            }
+            if(player.charType==='spike'&&!player.isDead){
+                if(!moveData.active&&!player.isDashing){player.stillTimer+=ts;if(player.stillTimer>=90){if(!player.isRooted){player.isRooted=true;addFloatingNumber(player.x,player.y-30,"KÖK SALDI!","#2ecc71");}player.hp=Math.min(player.maxHp,player.hp+Math.floor(100/60*ts));}}else{player.stillTimer=0;player.isRooted=false;}
+            } else {
+                player.stillTimer=0;player.isRooted=false;
+                if(player.charType==='sam'&&!player.isDead){ if(player.samRageActive){ player.samRageTimer-=ts; if(player.samRageTimer<=0){player.samRageActive=false;} else if(Math.random()<0.1)spawnParticles(player.x,player.y,'#e74c3c','smoke'); } }
+            }
+            for(let i=cactusWalls.length-1;i>=0;i--){let cw=cactusWalls[i];if(cw.hp<=0){for(let j=0;j<8;j++)bullets.push({x:cw.x,y:cw.y,sx:cw.x,sy:cw.y,vx:Math.cos((j*Math.PI*2)/8)*12,vy:Math.sin((j*Math.PI*2)/8)*12,type:'main',hitTargets:[],rangeMod:0.8});spawnParticles(cw.x,cw.y,'#2ecc71','normal');screenShake=10;cactusWalls.splice(i,1);}}
+            if(player.charType==='sam'&&!player.hasGloves&&samGloves.length>0&&!player.isDead){let g=samGloves[0];if(getDist(player,g)<player.radius+35){player.hasGloves=true;player.speed=player.originalSpeed;player.reloadSpeed=0.015;let heal=Math.floor(250+(g.dist*1));player.hp=Math.min(player.maxHp,player.hp+heal);addFloatingNumber(player.x,player.y,"+"+heal,"#2ecc71");samGloves=[];chargeUlti(100);addFloatingNumber(player.x,player.y,"TOPLANDI!","#f1c40f");}}
+            for(let i=souls.length-1;i>=0;i--){ let s=souls[i]; s.life-=ts; if(s.life<=0){souls.splice(i,1); continue;} if(player.charType==='hayalet'&&!player.isDead&&getDist(player,s)<player.radius+15){ player.hp=Math.min(player.maxHp,player.hp+200); addFloatingNumber(player.x,player.y,"+200","#2ecc71"); player.isInvisible=true; player.invisTimer=240; addFloatingNumber(player.x,player.y-20,"GÖRÜNMEZ!","#95a5a6"); souls.splice(i,1); } }
+            for(let i=spikeFields.length-1;i>=0;i--){let sf=spikeFields[i];sf.life-=ts;if(sf.life<=0){spikeFields.splice(i,1);continue;}getActiveEnemies().forEach(e=>{if(getDist(sf,e)<70){if(Math.random()<0.1){e.hp-=25;addFloatingNumber(e.x,e.y,"25","#2ecc71");chargeUlti(2);if(player.charType==='spike'&&player.hp<player.maxHp&&!player.isDead){player.hp=Math.min(player.maxHp,player.hp+25);addFloatingNumber(player.x,player.y,"+25","#2ecc71");}}}});}
+            for(let i=particles.length-1;i>=0;i--){let p=particles[i];p.x+=p.vx*ts;p.y+=p.vy*ts;p.life-=ts;if(p.type==='smoke'){p.size+=.2*ts;p.vx*=.95;p.vy*=.95}if(p.life<=0)particles.splice(i,1);}
+            if(Date.now()-lastObstacleTime>4500){spawnObstacle();if(typeof window.GAME_EXT.hooks.onObstacleTick==='function')window.GAME_EXT.hooks.onObstacleTick();lastObstacleTime=Date.now()}
+            for(let i=obstacles.length-1;i>=0;i--)if(obstacles[i].hp<=0){spawnParticles(obstacles[i].x,obstacles[i].y,'#7f8c8d');obstacles.splice(i,1)}
+            if(player.isInvisible&&(player.invisTimer-=ts)<=0)player.isInvisible=false;
+            let cSP=!player.isDead&&!player.isInvisible;
+            getActiveEnemies().forEach(e=>{
+                e.oSp=e.oSp||e.speed; e.oR=e.oR||e.radius; e.alerted=false;
+                if(e.bombaBulasti){e.bombaSayaci-=ts;if(e.bombaSayaci<=0){e.bombaBulasti=false;e.hp-=1200;addFloatingNumber(e.x,e.y,"1200","#e67e22");spawnParticles(e.x,e.y,'#e67e22','normal');screenShake=8;explosions.push({x:e.x,y:e.y,radius:0,maxRadius:130,life:15,maxLife:15});getActiveEnemies().forEach(o=>{if(o!==e&&getDist(e,o)<130&&!o.isDead){o.hp-=400;addFloatingNumber(o.x,o.y,"400","#e67e22");if(!o.bombaBulasti){o.bombaBulasti=true;o.bombaSayaci=120;}}});}}
+                if(e.ghostRingDebounce > 0) e.ghostRingDebounce -= ts;
+                // --- Hedef ve menzil hesaplama (mod dosyası özelleştirebilir) ---
+                let customTarget = (typeof window.GAME_EXT.hooks.getBotTarget==='function') ? window.GAME_EXT.hooks.getBotTarget(e) : null;
+                let dP=getDist(player,e);
+                // customTarget tanımlıysa (örn. kule) bot her zaman "görür" - oyuncunun görünmezliği sadece
+                // botun OYUNCUYU hedeflediği (varsayılan/arena) durumda geçerli olmalı.
+                let bC = customTarget ? true : cSP;
+                if(!customTarget && player.charType==='hayalet'&&player.isInvisible&&dP<70)bC=e.alerted=true;
+                let engageTarget = customTarget || player;
+                let engageDist = (typeof window.GAME_EXT.hooks.getEngageDistance==='function') ? window.GAME_EXT.hooks.getEngageDistance(e) : dP;
+
+                let pX=engageTarget.x+(engageTarget===player&&moveData.active&&!player.isDead?moveData.x*player.speed*(dP/BOT_BULLET_SPEED)*.7:0), pY=engageTarget.y+(engageTarget===player&&moveData.active&&!player.isDead?moveData.y*player.speed*(dP/BOT_BULLET_SPEED)*.7:0);
+                if(bC&&!e.isNest) e.angle=Math.atan2(pY-e.y,pX-e.x);
+                if(Math.abs(e.kbX)>.1||Math.abs(e.kbY)>.1){e.x+=e.kbX*ts;e.y+=e.kbY*ts;e.kbX*=.85;e.kbY*=.85;}
+                if(e===bot||e===bot2){ if(engageDist>180&&bC){e.x+=Math.cos(e.angle)*e.speed*ts;e.y+=Math.sin(e.angle)*e.speed*ts;} if(engageDist<RANGE&&Date.now()-e.lastShot>e.shootInterval&&bC){botBullets.push({x:e.x,y:e.y,sx:e.x,sy:e.y,vx:Math.cos(e.angle+(Math.random()-.5)*.35)*BOT_BULLET_SPEED,vy:Math.sin(e.angle+(Math.random()-.5)*.35)*BOT_BULLET_SPEED,dmgMod:1,owner:e});e.lastShot=Date.now();} } 
+                else if(stationaryBots.includes(e)&&bC&&Date.now()-e.lastShot>e.shootInterval){botBullets.push({x:e.x,y:e.y,sx:e.x,sy:e.y,vx:Math.cos(e.angle+(Math.random()-.5)*.15)*BOT_BULLET_SPEED,vy:Math.sin(e.angle+(Math.random()-.5)*.15)*BOT_BULLET_SPEED,type:'stationary_bot_bullet',dmgMod:1,owner:e});e.lastShot=Date.now();} 
+                else if(boomerangBots.includes(e)){ if(engageDist>200&&bC){e.x+=Math.cos(e.angle)*e.speed*ts;e.y+=Math.sin(e.angle)*e.speed*ts;} if(engageDist<RANGE*2.5&&Date.now()-e.lastShot>e.shootInterval&&bC){botBullets.push({x:e.x,y:e.y,sx:e.x,sy:e.y,vx:Math.cos(e.angle)*BOT_BULLET_SPEED*0.7,vy:Math.sin(e.angle)*BOT_BULLET_SPEED*0.7,type:'boomerang',dmgMod:0.5,owner:e,returning:false});e.lastShot=Date.now();} } 
+                else if(fogBots.includes(e)){ if(engageDist>80&&bC){e.x+=Math.cos(e.angle)*e.speed*ts;e.y+=Math.sin(e.angle)*e.speed*ts;} } 
+                else if(slimeBots.includes(e)){ 
+                    e.x+=Math.cos(e.angle)*e.speed*ts;e.y+=Math.sin(e.angle)*e.speed*ts; 
+                    let hitWall=false;
+                    for(let w of cactusWalls){
+                        if(getDist(e,w)<e.radius+w.radius){
+                            w.hp-=200; addFloatingNumber(w.x,w.y,"200","#e74c3c");
+                            e.hp=0; hitWall=true; break;
+                        }
+                    }
+                    // küçük slime uzun süre öldürülmezse orta boya, orta boy uzun süre öldürülmezse büyük boya evrilir
+                    // Kolay modda evrim tamamen kapalı - slime'lar büyümez.
+                    if(!hitWall && e.hp>0 && e.stage>0 && window.GAME_DIFFICULTY!=='easy'){
+                        e.evolveTimer = (e.evolveTimer||0) + ts;
+                        let evolveFrames = e.stage===2 ? 720 : 960; // stage2->1: 12s, stage1->0: 16s (60fps varsayımıyla, +1s daha yavaşlatıldı)
+                        if(e.evolveTimer >= evolveFrames){
+                            e.stage -= 1;
+                            e.radius = e.stage===0?30:(e.stage===1?20:12);
+                            e.evolveTimer = 0;
+                            addFloatingNumber(e.x,e.y-20,"BÜYÜDÜ!","#2ecc71");
+                        }
+                    }
+                    if(!hitWall&&engageTarget===player&&dP<player.radius+e.radius&&!player.isDead&&!player.isDashing&&!player.jumpInvulnerable){
+                        let sDmg=200; if(player.charType==='sam'&&player.samRageActive) sDmg*=0.6; 
+                        let actualDmg = sDmg;
+                        player.hp -= actualDmg; 
+                        if(actualDmg > 0) addFloatingNumber(player.x, player.y, Math.floor(actualDmg), "#e74c3c");
+                        player.lastHitTime=Date.now();e.hp=0;
+                    } else if(!hitWall&&engageTarget!==player&&engageDist<(engageTarget.radius||0)+e.radius){
+                        // Mod dosyasının hedefi (örn. kule) - temas edince ona hasar ver ve slime kendi kendini yok etsin
+                        let sDmg=200;
+                        engageTarget.hp -= sDmg;
+                        addFloatingNumber(engageTarget.x, engageTarget.y, Math.floor(sDmg), "#e74c3c");
+                        e.hp=0;
+                    }
+                }
+                e.x=clampPos(e.x,e.radius+WALL_THICKNESS,canvas.width-e.radius-WALL_THICKNESS); e.y=clampPos(e.y,e.radius+WALL_THICKNESS,canvas.height-e.radius-WALL_THICKNESS); resolveObstacleCollision(e);
+            });
+            for(let i=floatingNumbers.length-1;i>=0;i--){let f=floatingNumbers[i];f.y-=ts;f.life-=ts;if(f.life<=0)floatingNumbers.splice(i,1)}
+            if(player.gadgetCooldown>0){player.gadgetCooldown-=ts;if(gadgetTimerText)gadgetTimerText.innerText=Math.ceil(player.gadgetCooldown/60)+"s";if(player.gadgetCooldown<=0){player.gadgetReady=true;gadgetBtn.classList.remove('cooldown');if(gadgetTimerText)gadgetTimerText.innerText="";}}
+            if(player.gadget2Cooldown>0){player.gadget2Cooldown-=ts;if(gadgetTimerText2)gadgetTimerText2.innerText=Math.ceil(player.gadget2Cooldown/60)+"s";if(player.gadget2Cooldown<=0){player.gadget2Ready=true;gadgetBtn2.classList.remove('cooldown');if(gadgetTimerText2)gadgetTimerText2.innerText="";}}
+            if(player.isBursting&&!player.isDead){if(player.burstTimer<=0){bullets.push({x:player.x,y:player.y,sx:player.x,sy:player.y,vx:Math.cos(player.burstAngle)*(PLAYER_BULLET_SPEED*1.35),vy:Math.sin(player.burstAngle)*(PLAYER_BULLET_SPEED*1.35),type:'ninja_bullet'});if(--player.burstCount>0)player.burstTimer=6;else player.isBursting=false;}else player.burstTimer-=ts;}
+            if(player.isJumping&&!player.isDead){
+                player.jumpProgress += ts/player.jumpDuration;
+                if(player.jumpProgress>=1){
+                    player.jumpProgress=1; player.x=player.jumpTargetX; player.y=player.jumpTargetY;
+                    player.isJumping=false; player.jumpInvulnerable=false;
+                    spawnParticles(player.x,player.y,'#2ecc71','normal');
+                    let jDmg=player.jumpDamage||300, jKb=player.jumpKnockback||18, jLabel=player.jumpLabel||"GÖLGE SIÇRAYIŞI!";
+                    addFloatingNumber(player.x,player.y,jLabel,"#2ecc71");
+                    getActiveEnemies().forEach(e=>{
+                        if(getDist(player,e)<100){
+                            e.hp-=jDmg; addFloatingNumber(e.x,e.y,jDmg,"#2ecc71");
+                            let kAng=getAngle(player,e); e.kbX=Math.cos(kAng)*jKb; e.kbY=Math.sin(kAng)*jKb;
+                        }
+                    });
+                } else {
+                    player.x=player.jumpStartX+(player.jumpTargetX-player.jumpStartX)*player.jumpProgress;
+                    player.y=player.jumpStartY+(player.jumpTargetY-player.jumpStartY)*player.jumpProgress;
+                }
+            } else if(player.isDashing&&!player.isDead){ player.dashTimer-=ts; player.x+=Math.cos(player.dashAngle)*player.speed*2.5*ts; player.y+=Math.sin(player.dashAngle)*player.speed*2.5*ts; getActiveEnemies().forEach(e=>{if(!player.dashHitTargets.includes(e)&&getDist(player,e)<player.radius+e.radius+15){e.hp-=200;addFloatingNumber(e.x,e.y,"200","#e67e22");player.dashHitTargets.push(e);}}); if(player.dashTimer<=0)player.isDashing=false; } else if(moveData.active&&!player.isDead){player.x+=moveData.x*player.speed*ts;player.y+=moveData.y*player.speed*ts;if(!aimData.active)player.angle=moveData.angle;}
+            if(aimData.active&&!player.isDead&&!player.isJumping) player.angle=aimData.angle;
+            player.x=clampPos(player.x,player.radius+WALL_THICKNESS,canvas.width-player.radius-WALL_THICKNESS); player.y=clampPos(player.y,player.radius+WALL_THICKNESS,canvas.height-player.radius-WALL_THICKNESS); if(!player.isJumping) { resolveObstacleCollision(player); player.x=clampPos(player.x,player.radius+WALL_THICKNESS,canvas.width-player.radius-WALL_THICKNESS); player.y=clampPos(player.y,player.radius+WALL_THICKNESS,canvas.height-player.radius-WALL_THICKNESS); }
+            if(player.ammo<player.maxAmmo)player.ammo+=player.reloadSpeed*ts;
+            if(Date.now()-player.lastHitTime>REGEN_DELAY&&player.hp<player.maxHp&&!player.isDead){let h=REGEN_AMOUNT*ts;player.hp=Math.min(player.maxHp,player.hp+h);player.regenBuffer+=h;if(player.regenBuffer>=100){addFloatingNumber(player.x,player.y,"+"+Math.floor(player.regenBuffer),"#2ecc71");player.regenBuffer=0;}}else player.regenBuffer=0;
+            let extGameOver = (typeof window.GAME_EXT.hooks.checkGameOver==='function') && window.GAME_EXT.hooks.checkGameOver();
+            if((player.hp<=0||extGameOver)&&!player.isDead){player.isDead=true;setTimeout(()=>document.getElementById('game-over-screen').style.display='flex',1000);}
+            [bot, bot2].forEach(cB => { if(!cB.isActive)return; if(cB.hp<=0&&!cB.isDead){cB.isDead=true;cB.respawnTimer=0;spawnParticles(cB.x,cB.y,cB.color);cB.nextSpawnX=Math.random()>.5?canvas.width-120:120;cB.nextSpawnY=Math.random()*(canvas.height-240)+120;triggerBotKill(cB.nextSpawnX,cB);} if(cB.isDead){cB.x=cB.y=-1000;if((cB.respawnTimer+=ts)>BOT_RESPAWN_TIME){cB.isDead=false;cB.hp=cB.maxHp;cB.x=cB.nextSpawnX;cB.y=cB.nextSpawnY;cB.kbX=cB.kbY=0;cB.bombaBulasti=false;cB.bombaSayaci=0;}} });
+            for(let i=slimeBots.length-1;i>=0;i--)if(slimeBots[i].hp<=0){let sb=slimeBots[i];spawnParticles(sb.x,sb.y,sb.color);if(sb.stage<2){spawnSlimeBot(sb.x+15,sb.y+15,sb.stage+1);spawnSlimeBot(sb.x-15,sb.y-15,sb.stage+1);triggerBotKill(sb.x,sb);}else{triggerBotKill(sb.x,sb);}slimeBots.splice(i,1);}
+            for(let i=stationaryBots.length-1;i>=0;i--)if(stationaryBots[i].hp<=0){spawnParticles(stationaryBots[i].x,stationaryBots[i].y,stationaryBots[i].color);triggerBotKill(stationaryBots[i].x,stationaryBots[i]);stationaryBots.splice(i,1);}
+            for(let i=boomerangBots.length-1;i>=0;i--)if(boomerangBots[i].hp<=0){spawnParticles(boomerangBots[i].x,boomerangBots[i].y,boomerangBots[i].color);triggerBotKill(boomerangBots[i].x,boomerangBots[i]);boomerangBots.splice(i,1);}
+            for(let i=fogBots.length-1;i>=0;i--)if(fogBots[i].hp<=0){spawnParticles(fogBots[i].x,fogBots[i].y,fogBots[i].color,'smoke');triggerBotKill(fogBots[i].x,fogBots[i]);fogAreas.push({x:fogBots[i].x,y:fogBots[i].y,timer:450});addFloatingNumber(fogBots[i].x,fogBots[i].y-30,"SİS ÇÖKTÜ!","#7f8c8d");fogBots.splice(i,1);}
+            for(let i=nests.length-1;i>=0;i--){let n=nests[i];if(n.hp<=0){spawnParticles(n.x,n.y,n.color);triggerBotKill(n.x,n);nests.splice(i,1);}else if(Date.now()-n.lastSpawn>7000){spawnIndicators.push({x:n.x,y:n.y,type:'slime',stage:1,timer:180});n.lastSpawn=Date.now();n.spawnCount++;if(n.spawnCount>=4)n.hp=0;}}
+            updateBulletLogic(bullets,false,ts); updateBulletLogic(botBullets,true,ts);
+        }
+
+        function drawEntity(e, isP) {
+            if(e.isDead)return; ctx.save(); 
+            if(isP&&player.isInvisible)ctx.globalAlpha=.4; else{let inFog=fogAreas.some(f=>getDist(e,f)<250);if(inFog)ctx.globalAlpha=0.15;}
+            if(isP&&player.charType==='spike'&&player.isRooted){ctx.beginPath();ctx.arc(e.x,e.y,e.radius+15+Math.sin(Date.now()/150)*5,0,Math.PI*2);ctx.strokeStyle='rgba(46, 204, 113, 0.6)';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#2ecc71';for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(e.x+Math.cos(i*Math.PI/2)*(e.radius+10),e.y+Math.sin(i*Math.PI/2)*(e.radius+10),4,0,Math.PI*2);ctx.fill();}}
+
+            if(e.bombaBulasti&&!isP){ctx.beginPath();ctx.arc(e.x,e.y,e.radius+(e.bombaSayaci/120)*25,0,Math.PI*2);ctx.strokeStyle=`rgba(230, 126, 34, ${e.bombaSayaci/120})`;ctx.lineWidth=2;ctx.stroke();}
+            ctx.fillStyle='#444';ctx.fillRect(e.x-20,e.y-e.radius-15,40,5);ctx.fillStyle=isP?'#2ecc71':'#e74c3c';ctx.fillRect(e.x-20,e.y-e.radius-15,Math.max(0,e.hp)/e.maxHp*40,5);
+            if(isP){
+                ctx.fillStyle='#444';ctx.fillRect(e.x-20,e.y-e.radius-8,40,3);ctx.fillStyle='#e67e22';ctx.fillRect(e.x-20,e.y-e.radius-8,(e.ammo/e.maxAmmo)*40,3);
+                if(e.charType==='sam'){
+                    ctx.fillStyle='#444';ctx.fillRect(e.x-20,e.y-e.radius-22,40,3);
+                    ctx.fillStyle='#e74c3c'; let rFill=e.samRageActive?(e.samRageTimer/300)*40:(e.samHitCount/8)*40; ctx.fillRect(e.x-20,e.y-e.radius-22,rFill,3);
+                }
+            }
+            let jumpH=0, jumpScale=1;
+            if(isP&&player.isJumping){ jumpH=Math.sin(player.jumpProgress*Math.PI); jumpScale=1+jumpH*0.35;
+                ctx.save();ctx.beginPath();ctx.ellipse(e.x,e.y,e.radius*0.9,e.radius*0.35,0,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,'+(0.35*(1-jumpH*0.5))+')';ctx.fill();ctx.restore();
+            }
+            ctx.translate(e.x,e.y-jumpH*55); 
+            if(jumpScale!==1) ctx.scale(jumpScale,jumpScale);
+            if(isP&&player.gadgetActive){ctx.beginPath();ctx.arc(0,0,e.radius+4,0,Math.PI*2);ctx.strokeStyle='#f1c40f';ctx.lineWidth=2;ctx.stroke();}
+            if(isP&&player.isDashing){ctx.beginPath();ctx.arc(0,0,e.radius+5,0,Math.PI*2);ctx.strokeStyle='#e67e22';ctx.lineWidth=3;ctx.stroke();}
+            if(isP&&e.charType==='sam'&&e.samRageActive){ctx.beginPath();ctx.arc(0,0,e.radius+6+Math.sin(Date.now()/100)*4,0,Math.PI*2);ctx.strokeStyle='#e74c3c';ctx.lineWidth=3;ctx.stroke();}
+            ctx.rotate(e.angle);ctx.beginPath();ctx.arc(0,0,e.radius,0,Math.PI*2);ctx.fillStyle=(isP&&e.charType==='sam'&&!e.hasGloves)?'#e74c3c':e.color; 
+            if(e.bombaBulasti&&Math.floor(e.bombaSayaci/8)%2===0)ctx.fillStyle='#e74c3c'; ctx.fill();
+            if(e.isNest){ctx.beginPath();ctx.arc(0,0,e.radius-8,0,Math.PI*2);ctx.fillStyle='#1e8449';ctx.fill();ctx.beginPath();ctx.arc(0,0,e.radius-18,0,Math.PI*2);ctx.fillStyle='#145a32';ctx.fill();}
+            if(e.isFog){ctx.beginPath();ctx.arc(0,0,e.radius-5,0,Math.PI*2);ctx.strokeStyle='#bdc3c7';ctx.lineWidth=3;ctx.stroke();}
+            ctx.beginPath();ctx.arc(e.radius-4,0,5,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,.4)';ctx.fill();ctx.restore();
+        }
+
+        function draw() {
+            ctx.clearRect(0,0,canvas.width,canvas.height); if(!gameStarted)return; ctx.save();
+            if(screenShake>0)ctx.translate((Math.random()-.5)*screenShake,(Math.random()-.5)*screenShake);
+            ctx.fillStyle='#2c3e50'; ctx.fillRect(0,0,canvas.width,WALL_THICKNESS); ctx.fillRect(0,canvas.height-WALL_THICKNESS,canvas.width,WALL_THICKNESS); ctx.fillRect(0,0,WALL_THICKNESS,canvas.height); ctx.fillRect(canvas.width-WALL_THICKNESS,0,WALL_THICKNESS,canvas.height);
+            if(player.charType==='ninja'&&player.ninjaZoneActive){ctx.save();ctx.translate(player.ninjaZoneX,player.ninjaZoneY);ctx.globalAlpha=Math.min(1,player.ninjaZoneTimer/60)*0.4;ctx.beginPath();ctx.arc(0,0,player.ninjaZoneRadius,0,Math.PI*2);ctx.fillStyle='rgba(46, 204, 113, 0.2)';ctx.fill();ctx.globalAlpha=Math.min(1,player.ninjaZoneTimer/60)*0.9;ctx.strokeStyle='#2ecc71';ctx.lineWidth=3;ctx.stroke();ctx.rotate(Date.now()/400);ctx.setLineDash([10,20]);ctx.beginPath();ctx.arc(0,0,player.ninjaZoneRadius-10,0,Math.PI*2);ctx.strokeStyle='#00ffcc';ctx.lineWidth=2;ctx.stroke();ctx.restore();}
+
+            ghostZones.forEach(z=>{
+                ctx.save(); ctx.translate(z.x, z.y);
+                ctx.globalAlpha = Math.min(0.4, z.timer / 60);
+                ctx.beginPath(); ctx.arc(0, 0, z.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#7f8c8d'; ctx.fill();
+                ctx.strokeStyle = '#bdc3c7'; ctx.lineWidth = 2; ctx.setLineDash([10, 15]); ctx.stroke();
+                ctx.restore();
+            });
+            specialSouls.forEach(s => {
+                ctx.save(); ctx.translate(s.x, s.y);
+                ctx.globalAlpha = Math.min(0.8, s.life / 60);
+                ctx.beginPath(); ctx.arc(0, 0, s.radius, 0, Math.PI*2);
+                ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 3;
+                ctx.setLineDash([15, 10]); ctx.stroke();
+                ctx.fillStyle = 'rgba(0, 255, 255, 0.08)'; ctx.fill();
+                ctx.setLineDash([]);
+                ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2);
+                ctx.fillStyle = '#00ffff'; ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 12; ctx.fill();
+                ctx.restore();
+            });
+            obstacles.forEach(o=>{ctx.save();ctx.translate(o.x,o.y);ctx.fillStyle='#8e44ad';ctx.beginPath();ctx.roundRect(-o.radius,-o.radius,o.radius*2,o.radius*2,10);ctx.fill();ctx.fillStyle='#e74c3c';ctx.fillRect(-15,-o.radius-15,30*(o.hp/o.maxHp),4);ctx.restore();});
+            spikeFields.forEach(sf=>{ctx.save();ctx.translate(sf.x,sf.y);ctx.globalAlpha=Math.min(1,sf.life/60)*0.3;ctx.beginPath();ctx.arc(0,0,70,0,Math.PI*2);ctx.fillStyle='#2ecc71';ctx.fill();ctx.restore();});
+            cactusWalls.forEach(cw=>{ctx.save();ctx.translate(cw.x,cw.y);ctx.fillStyle='#27ae60';ctx.beginPath();for(let j=0;j<12;j++){let a=(j*Math.PI*2)/12,r=j%2===0?cw.radius:cw.radius-10;if(j===0)ctx.moveTo(r,0);else ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);}ctx.closePath();ctx.fill();ctx.strokeStyle='#2ecc71';ctx.lineWidth=3;ctx.stroke();ctx.fillStyle='#e74c3c';ctx.fillRect(-20,-cw.radius-15,40*(cw.hp/cw.maxHp),4);ctx.restore();});
+            samGloves.forEach(g=>{ctx.save();ctx.translate(g.x,g.y);ctx.beginPath();ctx.arc(0,0,15,0,Math.PI*2);ctx.fillStyle='#c0392b';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.stroke();ctx.beginPath();ctx.arc(0,0,22,0,Math.PI*2);ctx.strokeStyle='rgba(241, 196, 15, 0.5)';ctx.lineWidth=2;ctx.stroke();ctx.restore();});
+            souls.forEach(s=>{ctx.save();ctx.translate(s.x,s.y);ctx.globalAlpha=0.8;ctx.beginPath();ctx.arc(0,0,10,0,Math.PI*2);ctx.fillStyle='#bdc3c7';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.beginPath();ctx.arc(0,0,15+Math.sin(Date.now()/150)*3,0,Math.PI*2);ctx.strokeStyle='rgba(189, 195, 199, 0.5)';ctx.lineWidth=2;ctx.stroke();ctx.restore();});
+            explosions.forEach(ex=>{ctx.save();ctx.translate(ex.x,ex.y);ctx.beginPath();ctx.arc(0,0,ex.radius,0,Math.PI*2);ctx.fillStyle=`rgba(241, 196, 15, ${(ex.life/ex.maxLife)*0.4})`;ctx.fill();ctx.strokeStyle=`rgba(230, 126, 34, ${(ex.life/ex.maxLife)})`;ctx.lineWidth=4;ctx.stroke();ctx.restore();});
+
+            if(aimData.active&&player.ammo>=1&&!player.isDead){
+                if(player.charType !== 'spike') {
+                    ctx.save();ctx.translate(player.x,player.y);ctx.rotate(aimData.angle);
+                    let aimDist=player.charType==='sam'?95:(player.charType==='ninja'?RANGE*0.65:RANGE);
+                    if(player.charType==='sam'&&player.samRageActive)aimDist*=1.15;
+                    ctx.fillStyle='rgba(255, 255, 255, 0.15)';ctx.fillRect(0,-10,aimDist,20);
+                    ctx.strokeStyle='rgba(255, 255, 255, 0.4)';ctx.lineWidth=1;ctx.strokeRect(0,-10,aimDist,20);ctx.restore();
+                } else {
+                    let pullMag = Math.min(1, Math.hypot(aimData.x, aimData.y));
+                    if(aimData.isMouse || pullMag < 0.1) pullMag = 1; 
+                    let rMod = player.isRooted ? 1.2 : 1;
+                    let targetDist = Math.max(70, pullMag * RANGE * 0.9 * rMod);
+                    let targetX = player.x + Math.cos(aimData.angle) * targetDist;
+                    let targetY = player.y + Math.sin(aimData.angle) * targetDist;
+                    let rad = player.spikeVortexActive ? 200 : 20; 
+                    ctx.save();
+                    ctx.beginPath();ctx.moveTo(player.x,player.y);ctx.lineTo(targetX,targetY);
+                    ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.stroke();
+                    ctx.beginPath();ctx.arc(targetX, targetY, rad, 0, Math.PI*2);
+                    ctx.fillStyle=player.spikeVortexActive ? 'rgba(142,68,173,0.3)' : 'rgba(46,204,113,0.3)';ctx.fill();
+                    ctx.strokeStyle=player.spikeVortexActive ? '#8e44ad' : '#2ecc71';ctx.lineWidth=2;ctx.setLineDash([]);ctx.stroke();
+                    ctx.restore();
+                }
+            }
+            if(ultAim.active&&player.ultReady&&!player.isDead&&['spike','ninja','hayalet','sam'].includes(player.charType)){
+                ctx.save();
+                if(player.charType !== 'spike') {
+                    ctx.translate(player.x,player.y);ctx.rotate(ultAim.angle);ctx.beginPath();ctx.moveTo(0,0);
+                    let lineLength=(player.charType==='ninja'?RANGE*1.5:(player.charType==='sam'?SAM_ULTI_RANGE:(player.charType==='hayalet'?GHOST_ULTI_RADIUS:RANGE*1.5)));
+                    if(player.charType==='sam'&&!player.hasGloves)ctx.arc(0,0,30,0,Math.PI*2);
+                    else if(player.charType==='hayalet')ctx.arc(0,0,GHOST_ULTI_RADIUS,0,Math.PI*2);
+                    else ctx.lineTo(lineLength,0);
+                    ctx.strokeStyle='rgba(241, 196, 15, 0.5)';ctx.lineWidth=12;ctx.lineCap='round';ctx.stroke();
+                }
+                ctx.restore();
+            }
+            if(gadAim.active&&player.gadgetReady&&!player.isDead&&['spike','ninja'].includes(player.charType)){
+                ctx.save();
+                if(player.charType==='spike'){
+                    ctx.translate(player.x,player.y);ctx.rotate(gadAim.angle);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(180,0);ctx.strokeStyle='rgba(46, 204, 113, 0.5)';ctx.lineWidth=12;ctx.lineCap='round';ctx.stroke();
+                } else if(player.charType==='ninja'){
+                    let tDist = Math.max(40, RANGE * 0.8 * (gadAim.pull!==undefined?gadAim.pull:1));
+                    let tX = player.x + Math.cos(gadAim.angle)*tDist;
+                    let tY = player.y + Math.sin(gadAim.angle)*tDist;
+                    ctx.beginPath();ctx.moveTo(player.x,player.y);ctx.lineTo(tX,tY);ctx.strokeStyle='rgba(46, 204, 113, 0.5)';ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.stroke();
+                    ctx.beginPath();ctx.arc(tX,tY,120,0,Math.PI*2);ctx.fillStyle='rgba(46, 204, 113, 0.2)';ctx.fill();ctx.setLineDash([]);ctx.stroke();
+                }
+                ctx.restore();
+            }
+            if(gadAim2.active&&player.gadget2Ready&&!player.isDead&&player.charType==='ninja'){
+                ctx.save();
+                let tDist2 = Math.max(60, RANGE * 0.65 * (gadAim2.pull!==undefined?gadAim2.pull:1));
+                let tX2 = player.x + Math.cos(gadAim2.angle)*tDist2;
+                let tY2 = player.y + Math.sin(gadAim2.angle)*tDist2;
+                ctx.beginPath();ctx.moveTo(player.x,player.y);ctx.lineTo(tX2,tY2);ctx.strokeStyle='rgba(46, 204, 113, 0.5)';ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.beginPath();ctx.arc(tX2,tY2,100,0,Math.PI*2);ctx.fillStyle='rgba(46, 204, 113, 0.2)';ctx.strokeStyle='rgba(46, 204, 113, 0.6)';ctx.lineWidth=2;ctx.fill();ctx.stroke();
+                ctx.restore();
+            }
+            if(gadAim2.active&&player.gadget2Ready&&!player.isDead&&player.charType==='spike'){
+                ctx.save();
+                let coneDist = RANGE*0.5, spreadTotal=Math.PI/4;
+                ctx.beginPath(); ctx.moveTo(player.x,player.y);
+                ctx.lineTo(player.x+Math.cos(gadAim2.angle-spreadTotal/2)*coneDist, player.y+Math.sin(gadAim2.angle-spreadTotal/2)*coneDist);
+                ctx.arc(player.x,player.y,coneDist,gadAim2.angle-spreadTotal/2,gadAim2.angle+spreadTotal/2);
+                ctx.closePath();
+                ctx.fillStyle='rgba(241, 196, 15, 0.18)'; ctx.strokeStyle='rgba(241, 196, 15, 0.6)'; ctx.lineWidth=2;
+                ctx.fill(); ctx.stroke();
+                ctx.restore();
+            }
+            [player,...getActiveEnemies()].sort((a,b)=>a.y-b.y).forEach(e=>drawEntity(e,e===player));
+            bullets.forEach(b=>drawBullet(b,player.color)); botBullets.forEach(b=>drawBullet(b,'#e74c3c'));
+            particles.forEach(p=>{ctx.save();ctx.globalAlpha=p.life/p.maxLife;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();ctx.restore();});
+            fogAreas.forEach(f=>{ctx.save();let gradient=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,250);gradient.addColorStop(0,`rgba(44, 62, 80, ${Math.min(0.95,f.timer/60)})`);gradient.addColorStop(1,'rgba(44, 62, 80, 0)');ctx.fillStyle=gradient;ctx.beginPath();ctx.arc(f.x,f.y,250,0,Math.PI*2);ctx.fill();ctx.restore();});
+            spawnIndicators.forEach(ind=>{ctx.save();ctx.translate(ind.x,ind.y);ctx.globalAlpha=Math.abs(Math.sin(Date.now()/150));ctx.beginPath();ctx.arc(0,0,30,0,Math.PI*2);ctx.strokeStyle='#e74c3c';ctx.lineWidth=4;ctx.stroke();ctx.globalAlpha=1;ctx.fillStyle='#e74c3c';ctx.font="bold 16px Arial";ctx.textAlign="center";ctx.fillText(Math.ceil(ind.timer/60),0,6);ctx.restore();});
+            [bot, bot2].forEach(cB=>{if(cB.isDead&&cB.isActive&&cB.respawnTimer>BOT_RESPAWN_TIME-180){let remain=BOT_RESPAWN_TIME-cB.respawnTimer;ctx.save();ctx.translate(cB.nextSpawnX,cB.nextSpawnY);ctx.globalAlpha=Math.abs(Math.sin(Date.now()/150));ctx.beginPath();ctx.arc(0,0,30,0,Math.PI*2);ctx.strokeStyle='#e74c3c';ctx.lineWidth=4;ctx.stroke();ctx.globalAlpha=1;ctx.fillStyle='#e74c3c';ctx.font="bold 16px Arial";ctx.textAlign="center";ctx.fillText(Math.ceil(remain/60),0,6);ctx.restore();}});
+            ctx.save();ctx.font="bold 20px Arial";ctx.textAlign="center";floatingNumbers.forEach(f=>{ctx.globalAlpha=f.life/60;ctx.fillStyle=f.color;ctx.fillText(f.val,f.x,f.y);});ctx.restore();
+            ctx.fillStyle="#fff";ctx.font="bold 24px Arial";ctx.textAlign="center";ctx.fillText("Skor: "+botsKilled,canvas.width/2,40);ctx.restore();
+            if(typeof window.GAME_EXT.hooks.onDraw==='function')window.GAME_EXT.hooks.onDraw(ctx);
+        }
+
+        function loop(t) { if(!lastTime)lastTime=t; let ts=Math.min(3,(t-lastTime)/16.666); lastTime=t; update(ts); draw(); requestAnimationFrame(loop); } 
+        requestAnimationFrame(loop);
+    </script>
+
+    <!-- Aşağıdaki mod dosyaları ana koddan SONRA yüklenir; her biri window.GAME_EXT
+         üzerinden kayıt yaparak ana dosyaya dokunmadan yeni karakter/mod/bot ekler.
+         Dosya bulunamazsa tarayıcı sessizce atlar, oyunun geri kalanını etkilemez. -->
+    <script src="core.js"></script>
+    <script src="mod2.js"></script>
+    <script src="mod3.js"></script>
+    <script src="mod4.js"></script>
+    <script src="mod5.js"></script>
+    <script src="mod9.js"></script>
+    <script src="mod7.js"></script>
+    <script src="mod8.js"></script>
+    <script src="mod6.js"></script>
+    <script src="mod10.js"></script>
+    <script src="mod11.js"></script>
+    <script src="mod12.js"></script>
+    <script src="mod13.js"></script>
+    <script src="mod14.js"></script>
+    <script src="mod15.js"></script>
+    <script src="mod16.js"></script>
+    <script src="mod17.js"></script>
+    <script src="mod18.js"></script>
+    <script src="mod19.js"></script>
+    <script src="mod20.js"></script>
+    <script src="mod21.js"></script>
+    <script src="mod22.js"></script>
+    <script src="mod23.js"></script>
+    <script src="mod24.js"></script>
+    <script src="mod25.js"></script>
+    <script src="mod26.js"></script>
+    <script src="mod27.js"></script>
+    <script src="mod28.js"></script>
+    <script src="mod1.js"></script>
+
+</body>
+</html>
