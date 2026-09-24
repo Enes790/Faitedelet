@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<title>PvZ Fan</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:#1a1a2e;touch-action:none;user-select:none;font-family:system-ui,sans-serif}
+  .ov{position:fixed;inset:0;z-index:100;color:#fff;display:flex;align-items:center;justify-content:center;padding:calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom))}
+  .ov.h{display:none}
+  #wrap{position:fixed;inset:0;display:flex;flex-direction:column}
+  #topbar{height:56px;background:#2a2a4a;display:flex;align-items:center;padding:env(safe-area-inset-top) 6px 0;gap:6px}
+  #sunBox{background:#ffd700;color:#000;padding:6px 10px;border-radius:8px;font-weight:700;min-width:60px;text-align:center;font-size:14px;flex-shrink:0}
+  #seeds{flex:1;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:4px 0}
+  #seeds::-webkit-scrollbar{display:none}
+  .seed{flex:0 0 46px;height:46px;border-radius:8px;border:2px solid #555;background:#3a3a5a;color:#fff;font-size:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;gap:1px;padding:2px}
+  .seed .e{font-size:16px}
+  .seed.s{border-color:#0f0;box-shadow:0 0 8px #0f0}
+  .seed.d{opacity:.35}
+  canvas{display:block;width:100%;flex:1;touch-action:none}
+  #dbg{position:fixed;top:calc(60px + env(safe-area-inset-top));left:6px;color:#0f0;font-size:11px;font-family:monospace;pointer-events:none;text-shadow:1px 1px 2px #000}
+  #go{display:none;flex-direction:column;gap:16px;background:rgba(0,0,0,.85);z-index:90}
+  #go h1{font-size:22px}
+  .btn{padding:16px 28px;font-size:16px;font-weight:700;border:none;border-radius:12px;background:#4caf50;color:#fff;cursor:pointer;touch-action:manipulation;box-shadow:0 4px 0 rgba(0,0,0,.3);min-width:180px}
+  .btn:disabled{background:#444;color:#888;box-shadow:0 4px 0 rgba(0,0,0,.2)}
+  .btn.g{background:#555}
+  #menu{background:linear-gradient(135deg,#1a1a2e,#16213e 50%,#0f3460)}
+  #menu .c{text-align:center;max-width:360px;width:100%}
+  #menu h1{font-size:34px;margin-bottom:8px;text-shadow:0 0 20px rgba(120,220,120,.6)}
+  #menu .sub{font-size:13px;color:#8fb8de;margin-bottom:36px;font-style:italic}
+  #menu .btn{display:block;width:100%;padding:20px;margin:12px 0;font-size:18px;border-radius:14px}
+  #menu .hint{font-size:12px;color:#777;margin-top:12px}
+  #ps{background:linear-gradient(135deg,#1a1a2e,#16213e);flex-direction:column;justify-content:flex-start;align-items:stretch;overflow-y:auto;padding:16px 16px 100px 16px}
+  .ps-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .ps-h h2{font-size:20px}
+  #cnt{font-size:14px;color:#8fb8de;background:#2a2a4a;padding:6px 12px;border-radius:8px}
+  #cnt.f{background:#4caf50}
+  #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px;margin-bottom:16px}
+  .pc{background:#3a3a5a;border:2px solid #555;border-radius:10px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;touch-action:manipulation;min-height:76px;justify-content:center}
+  .pc .e{font-size:24px}
+  .pc .n{font-size:9px;font-weight:600;text-align:center;line-height:1.1}
+  .pc .c{font-size:10px;color:#ffd700;font-weight:700}
+  .pc.s{border-color:#0f0;background:#2d4a2d;box-shadow:0 0 10px rgba(0,255,0,.4)}
+  .lb{font-size:13px;color:#8fb8de;margin-bottom:8px}
+  #bar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px}
+  .slot{aspect-ratio:1;background:#1e1e2e;border:2px dashed #444;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;touch-action:manipulation;min-height:44px}
+  .slot.f{background:#3a3a5a;border:2px solid #0f0}
+  #psb{display:flex;gap:8px;position:fixed;bottom:calc(12px + env(safe-area-inset-bottom));left:16px;right:16px;background:#16213e;padding-top:12px;z-index:10}
+  #psb .btn{flex:1;min-width:0}
+  #actions{position:fixed;top:calc(62px + env(safe-area-inset-top));right:8px;z-index:5;display:flex;gap:6px}
+  #actions button{width:44px;height:32px;border-radius:8px;background:rgba(58,58,90,0.85);color:#fff;border:2px solid #555;font-size:16px;cursor:pointer;backdrop-filter:blur(4px)}
+  #actions button.active{background:#4caf50;border-color:#0f0;box-shadow:0 0 10px #0f0}
+  #pauseOverlay{display:none;flex-direction:column;gap:16px;background:rgba(0,0,0,0.85);z-index:95}
+  #pauseOverlay h1{font-size:22px}
+  /* DEBUG kutusu */
+  #dbgBox{position:fixed;top:0;left:0;right:0;background:#000;color:#0f0;font-family:monospace;font-size:11px;padding:6px 8px;z-index:9999;max-height:200px;overflow-y:auto;pointer-events:none;border-bottom:2px solid #0f0}
+  #dbgBox .err{color:#f66;font-weight:bold}
+  #dbgBox .step{color:#ff0}
+</style>
+</head>
+<body>
+
+<div id="dbgBox">[DEBUG] Sayfa yüklendi...</div>
+
+<div id="menu" class="ov">
+  <div class="c">
+    <h1>🌻 PvZ Fan</h1>
+    <p class="sub">Fan yapımı, sınırsız mod</p>
+    <button id="bS" class="btn">▶ Sınırsız Mod</button>
+    <button id="bL" class="btn" disabled>🔒 Levelli Mod</button>
+    <p class="hint">Levelli mod gelecekte gelecek</p>
+  </div>
+</div>
+
+<div id="ps" class="ov h">
+  <div class="ps-h"><h2>🌱 Bitkilerini Seç</h2><div id="cnt">0/7</div></div>
+  <div id="grid"></div>
+  <div class="lb">Seçilenler (slota tıkla → çıkar)</div>
+  <div id="bar"></div>
+  <div id="psb">
+    <button id="bM" class="btn g">← Menü</button>
+    <button id="bG" class="btn" disabled>▶ Başla</button>
+  </div>
+</div>
+
+<div id="wrap">
+  <div id="topbar"><div id="sunBox">☀ <span id="sv">50</span></div><div id="seeds"></div></div>
+  <canvas id="cv"></canvas>
+  <div id="actions">
+    <button id="shovelBtn">🪏</button>
+    <button id="pauseBtn">⏸️</button>
+  </div>
+</div>
+<div id="dbg"></div>
+<div id="go" class="ov">
+  <h1>🧟 Zombiler Evi Yedi!</h1>
+  <button class="btn" onclick="game.startFromSelection()">Tekrar Dene</button>
+  <button class="btn g" onclick="game.goToMenu()">Ana Menü</button>
+</div>
+<div id="pauseOverlay" class="ov">
+  <h1>⏸️ DURAKLATILDI</h1>
+  <button class="btn" onclick="game.resume()">▶ Devam Et</button>
+  <button class="btn g" onclick="game.goToMenu()">Ana Menü</button>
+</div>
+
+<script type="module">
+  const box = document.getElementById("dbgBox");
+  function log(msg, cls){
+    box.innerHTML += `<div class="${cls || ''}">${msg}</div>`;
+    box.scrollTop = box.scrollHeight;
+  }
+
+  window.addEventListener("error", e => {
+    log("❌ RUNTIME HATA: " + e.message + " @ " + (e.filename||"") + ":" + e.lineno, "err");
+  });
+
+  log("1️⃣ Script başladı");
+
+  try {
+    log("2️⃣ game.js yükleniyor...");
+    const {Game} = await import('./js/game.js');
+    log("3️⃣ game.js yüklendi ✅");
+
+    log("4️⃣ Game sınıfı örneği oluşturuluyor...");
+    const game = new Game(document.getElementById("cv"));
+    window.game = game;
+    log("5️⃣ Game örneği oluşturuldu ✅");
+
+    log("6️⃣ Butonlar bağlanıyor...");
+    document.getElementById("bS").addEventListener("click", () => {
+      log("🎯 Sınırsız Mod tıklandı");
+      try { game.showPlantSelect(); log("7️⃣ showPlantSelect çağrıldı ✅"); }
+      catch(e){ log("❌ showPlantSelect HATA: " + e.message, "err"); }
+    });
+    document.getElementById("bL").addEventListener("click", () => alert("Levelli mod gelecekte gelecek!"));
+    document.getElementById("bG").addEventListener("click", () => {
+      log("🎯 Başla tıklandı");
+      try { game.startFromSelection(); log("8️⃣ startFromSelection çağrıldı ✅"); }
+      catch(e){ log("❌ startFromSelection HATA: " + e.message, "err"); }
+    });
+    document.getElementById("bM").addEventListener("click", () => game.goToMenu());
+    document.getElementById("shovelBtn").addEventListener("click", () => game.toggleShovel());
+    document.getElementById("pauseBtn").addEventListener("click", () => game.pause());
+    log("9️⃣ Butonlar bağlandı ✅");
+
+    window.addEventListener("resize", () => game.resize());
+    window.addEventListener("orientationchange", () => setTimeout(() => game.resize(), 150));
+
+    const cv = document.getElementById("cv");
+    cv.addEventListener("touchstart", e => {
+      e.preventDefault();
+      const r = cv.getBoundingClientRect();
+      const t = e.touches[0];
+      game.onPointer(t.clientX - r.left, t.clientY - r.top);
+    }, {passive:false});
+    cv.addEventListener("mousedown", e => {
+      const r = cv.getBoundingClientRect();
+      game.onPointer(e.clientX - r.left, e.clientY - r.top);
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if(document.hidden) game.lastTime = performance.now();
+    });
+
+    log("🔟 resize + showMenu çağrılıyor...");
+    game.resize();
+    game.showMenu();
+    log("✅ HAZIR — Menü açık olmalı", "step");
+
+    requestAnimationFrame(game._loop);
+    log("▶️ Ana döngü başladı");
+
+  } catch(e){
+    log("❌ BÜYÜK HATA: " + e.message, "err");
+    log((e.stack || "").split("\n").slice(0,5).join(" | "), "err");
+  }
+</script>
+</body>
+</html>
