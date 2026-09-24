@@ -53,8 +53,9 @@
   #actions button.active{background:#4caf50;border-color:#0f0;box-shadow:0 0 10px #0f0}
   #pauseOverlay{display:none;flex-direction:column;gap:16px;background:rgba(0,0,0,0.85);z-index:95}
   #pauseOverlay h1{font-size:22px}
-  /* DEBUG kutusu */
-  #dbgBox{position:fixed;top:0;left:0;right:0;background:#000;color:#0f0;font-family:monospace;font-size:11px;padding:6px 8px;z-index:9999;max-height:200px;overflow-y:auto;pointer-events:none;border-bottom:2px solid #0f0}
+  /* DEBUG kutusu — varsayılan gizli */
+  #dbgBox{display:none;position:fixed;top:0;left:0;right:0;background:rgba(0,0,0,0.92);color:#0f0;font-family:monospace;font-size:11px;padding:6px 8px;z-index:9999;max-height:250px;overflow-y:auto;border-bottom:2px solid #0f0}
+  #dbgBox.on{display:block}
   #dbgBox .err{color:#f66;font-weight:bold}
   #dbgBox .step{color:#ff0}
 </style>
@@ -90,6 +91,7 @@
   <div id="actions">
     <button id="shovelBtn">🪏</button>
     <button id="pauseBtn">⏸️</button>
+    <button id="dbgBtn">🐛</button>
   </div>
 </div>
 <div id="dbg"></div>
@@ -106,13 +108,26 @@
 
 <script type="module">
   const box = document.getElementById("dbgBox");
+  let errCount = 0;
+
   function log(msg, cls){
     box.innerHTML += `<div class="${cls || ''}">${msg}</div>`;
     box.scrollTop = box.scrollHeight;
   }
 
+  // Debug kutusunu otomatik aç (hata olunca)
+  function openDbg(){
+    box.classList.add("on");
+  }
+
   window.addEventListener("error", e => {
     log("❌ RUNTIME HATA: " + e.message + " @ " + (e.filename||"") + ":" + e.lineno, "err");
+    openDbg();
+  });
+
+  // 🐛 butonu: aç/kapa
+  document.getElementById("dbgBtn").addEventListener("click", () => {
+    box.classList.toggle("on");
   });
 
   log("1️⃣ Script başladı");
@@ -131,13 +146,13 @@
     document.getElementById("bS").addEventListener("click", () => {
       log("🎯 Sınırsız Mod tıklandı");
       try { game.showPlantSelect(); log("7️⃣ showPlantSelect çağrıldı ✅"); }
-      catch(e){ log("❌ showPlantSelect HATA: " + e.message, "err"); }
+      catch(e){ log("❌ showPlantSelect HATA: " + e.message, "err"); openDbg(); }
     });
     document.getElementById("bL").addEventListener("click", () => alert("Levelli mod gelecekte gelecek!"));
     document.getElementById("bG").addEventListener("click", () => {
       log("🎯 Başla tıklandı");
       try { game.startFromSelection(); log("8️⃣ startFromSelection çağrıldı ✅"); }
-      catch(e){ log("❌ startFromSelection HATA: " + e.message, "err"); }
+      catch(e){ log("❌ startFromSelection HATA: " + e.message, "err"); openDbg(); }
     });
     document.getElementById("bM").addEventListener("click", () => game.goToMenu());
     document.getElementById("shovelBtn").addEventListener("click", () => game.toggleShovel());
@@ -174,6 +189,7 @@
   } catch(e){
     log("❌ BÜYÜK HATA: " + e.message, "err");
     log((e.stack || "").split("\n").slice(0,5).join(" | "), "err");
+    openDbg();
   }
 </script>
 </body>
