@@ -23,8 +23,16 @@ export class Game {
   }
 
   // ============ STATE ============
-  hide(id){ document.getElementById(id).style.display = "none"; }
-  show(id){ document.getElementById(id).style.display = "flex"; }
+  hide(id){
+    const el = document.getElementById(id);
+    el.classList.add("h");
+    el.style.display = "none";
+  }
+  show(id){
+    const el = document.getElementById(id);
+    el.classList.remove("h");
+    el.style.display = "flex";
+  }
 
   showMenu(){
     this.state = "menu";
