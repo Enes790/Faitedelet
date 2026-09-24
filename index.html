@@ -31,6 +31,7 @@
   #menu .sub{font-size:13px;color:#8fb8de;margin-bottom:36px;font-style:italic}
   #menu .btn{display:block;width:100%;padding:20px;margin:12px 0;font-size:18px;border-radius:14px}
   #menu .hint{font-size:12px;color:#777;margin-top:12px}
+  #menu .dbg-btn{background:#555;font-size:14px;padding:12px;margin-top:20px;min-width:0}
   #ps{background:linear-gradient(135deg,#1a1a2e,#16213e);flex-direction:column;justify-content:flex-start;align-items:stretch;overflow-y:auto;padding:16px 16px 100px 16px}
   .ps-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
   .ps-h h2{font-size:20px}
@@ -48,12 +49,14 @@
   .slot.f{background:#3a3a5a;border:2px solid #0f0}
   #psb{display:flex;gap:8px;position:fixed;bottom:calc(12px + env(safe-area-inset-bottom));left:16px;right:16px;background:#16213e;padding-top:12px;z-index:10}
   #psb .btn{flex:1;min-width:0}
-  #actions{position:fixed;top:calc(62px + env(safe-area-inset-top));right:8px;z-index:5;display:flex;gap:6px}
-  #actions button{width:44px;height:32px;border-radius:8px;background:rgba(58,58,90,0.85);color:#fff;border:2px solid #555;font-size:16px;cursor:pointer;backdrop-filter:blur(4px)}
+  /* AKSİYON BUTONLARI — SAĞ ALT, SADECE OYUN İÇİ */
+  #actions{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom));right:8px;z-index:5;display:none;flex-direction:column;gap:6px}
+  #actions.on{display:flex}
+  #actions button{width:48px;height:36px;border-radius:10px;background:rgba(58,58,90,0.85);color:#fff;border:2px solid #555;font-size:18px;cursor:pointer;backdrop-filter:blur(4px)}
   #actions button.active{background:#4caf50;border-color:#0f0;box-shadow:0 0 10px #0f0}
   #pauseOverlay{display:none;flex-direction:column;gap:16px;background:rgba(0,0,0,0.85);z-index:95}
   #pauseOverlay h1{font-size:22px}
-  /* DEBUG kutusu — varsayılan gizli */
+  /* DEBUG KUTUSU — gizli, hata olunca açılır */
   #dbgBox{display:none;position:fixed;top:0;left:0;right:0;background:rgba(0,0,0,0.92);color:#0f0;font-family:monospace;font-size:11px;padding:6px 8px;z-index:9999;max-height:250px;overflow-y:auto;border-bottom:2px solid #0f0}
   #dbgBox.on{display:block}
   #dbgBox .err{color:#f66;font-weight:bold}
@@ -70,6 +73,7 @@
     <p class="sub">Fan yapımı, sınırsız mod</p>
     <button id="bS" class="btn">▶ Sınırsız Mod</button>
     <button id="bL" class="btn" disabled>🔒 Levelli Mod</button>
+    <button id="dbgBtn" class="btn dbg-btn">🐛 Debug</button>
     <p class="hint">Levelli mod gelecekte gelecek</p>
   </div>
 </div>
@@ -91,7 +95,6 @@
   <div id="actions">
     <button id="shovelBtn">🪏</button>
     <button id="pauseBtn">⏸️</button>
-    <button id="dbgBtn">🐛</button>
   </div>
 </div>
 <div id="dbg"></div>
@@ -108,24 +111,20 @@
 
 <script type="module">
   const box = document.getElementById("dbgBox");
-  let errCount = 0;
 
   function log(msg, cls){
     box.innerHTML += `<div class="${cls || ''}">${msg}</div>`;
     box.scrollTop = box.scrollHeight;
   }
 
-  // Debug kutusunu otomatik aç (hata olunca)
-  function openDbg(){
-    box.classList.add("on");
-  }
+  function openDbg(){ box.classList.add("on"); }
 
   window.addEventListener("error", e => {
     log("❌ RUNTIME HATA: " + e.message + " @ " + (e.filename||"") + ":" + e.lineno, "err");
     openDbg();
   });
 
-  // 🐛 butonu: aç/kapa
+  // 🐛 butonu (menüde): aç/kapa
   document.getElementById("dbgBtn").addEventListener("click", () => {
     box.classList.toggle("on");
   });
@@ -142,19 +141,24 @@
     window.game = game;
     log("5️⃣ Game örneği oluşturuldu ✅");
 
+    // actions panelini gösteren yardımcı
+    const actionsEl = document.getElementById("actions");
+    function showActions(){ actionsEl.classList.add("on"); }
+    function hideActions(){ actionsEl.classList.remove("on"); }
+
     log("6️⃣ Butonlar bağlanıyor...");
     document.getElementById("bS").addEventListener("click", () => {
       log("🎯 Sınırsız Mod tıklandı");
-      try { game.showPlantSelect(); log("7️⃣ showPlantSelect çağrıldı ✅"); }
+      try { game.showPlantSelect(); hideActions(); log("7️⃣ showPlantSelect ✅"); }
       catch(e){ log("❌ showPlantSelect HATA: " + e.message, "err"); openDbg(); }
     });
     document.getElementById("bL").addEventListener("click", () => alert("Levelli mod gelecekte gelecek!"));
     document.getElementById("bG").addEventListener("click", () => {
       log("🎯 Başla tıklandı");
-      try { game.startFromSelection(); log("8️⃣ startFromSelection çağrıldı ✅"); }
+      try { game.startFromSelection(); showActions(); log("8️⃣ startFromSelection ✅"); }
       catch(e){ log("❌ startFromSelection HATA: " + e.message, "err"); openDbg(); }
     });
-    document.getElementById("bM").addEventListener("click", () => game.goToMenu());
+    document.getElementById("bM").addEventListener("click", () => { game.goToMenu(); hideActions(); });
     document.getElementById("shovelBtn").addEventListener("click", () => game.toggleShovel());
     document.getElementById("pauseBtn").addEventListener("click", () => game.pause());
     log("9️⃣ Butonlar bağlandı ✅");
@@ -178,10 +182,10 @@
       if(document.hidden) game.lastTime = performance.now();
     });
 
-    log("🔟 resize + showMenu çağrılıyor...");
     game.resize();
     game.showMenu();
-    log("✅ HAZIR — Menü açık olmalı", "step");
+    hideActions();
+    log("✅ HAZIR", "step");
 
     requestAnimationFrame(game._loop);
     log("▶️ Ana döngü başladı");
