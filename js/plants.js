@@ -431,10 +431,10 @@ export const BH = {
   cehennem(p, dt, g){
     const t = p.rampTime;
     let dps;
-    if(t < 3)        dps = 1.7;
-    else if(t < 6)   dps = 8;
-    else if(t < 9)   dps = 20;
-    else if(t < 12)  dps = 40;
+    if(t < 2)        dps = 1.7;
+    else if(t < 4)   dps = 8;
+    else if(t < 6)   dps = 20;
+    else if(t < 8)  dps = 40;
     else             dps = 80;
     const maxX = p.x + p.w + g.board.cw * PL.cehennem.rt;
     let target = null, bx = 1e9;
