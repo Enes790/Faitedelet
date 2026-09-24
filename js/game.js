@@ -24,11 +24,12 @@ export class Game {
 
   // ============ STATE ============
   hide(id){ document.getElementById(id).style.display = "none"; }
+  show(id){ document.getElementById(id).style.display = "flex"; }
 
   showMenu(){
     this.state = "menu";
     this.hide("ps"); this.hide("go"); this.hide("pauseOverlay");
-    document.getElementById("menu").classList.remove("h");
+    this.show("menu");
     document.getElementById("topbar").style.display = "none";
     document.getElementById("dbg").style.display = "none";
   }
@@ -36,7 +37,7 @@ export class Game {
   showPlantSelect(){
     this.state = "plantSelect";
     this.hide("menu"); this.hide("go"); this.hide("pauseOverlay");
-    document.getElementById("ps").classList.remove("h");
+    this.show("ps");
     document.getElementById("topbar").style.display = "none";
     document.getElementById("dbg").style.display = "none";
     this.renderCards();
@@ -57,13 +58,13 @@ export class Game {
   gameOver(){
     if(this.state === "over") return;
     this.state = "over";
-    document.getElementById("go").style.display = "flex";
+    this.show("go");
   }
 
   pause(){
     if(this.state !== "playing") return;
     this.state = "paused";
-    document.getElementById("pauseOverlay").style.display = "flex";
+    this.show("pauseOverlay");
   }
 
   resume(){
