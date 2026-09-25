@@ -4,7 +4,7 @@ import {Board} from './entities.js';
 import {Boom} from './effects.js';
 import {Pea, Needle, Shell, Sun} from './projectiles.js';
 import {Zombie} from './zombies.js';
-import {Plant, Mini} from './plants.js';
+import {Plant, Mini, BH} from './plants.js';
 
 export class Game {
   constructor(cv){
@@ -123,10 +123,10 @@ export class Game {
 
   spawnMiniZombie(kralice){
     const z = new Zombie("normal", kralice.row, kralice.x, kralice.y, kralice.w*0.65, kralice.h*0.65);
-    z.hp = 20;
-    z.mhp = 20;
-    z.speed = 10;
-    z.dmg = 30;
+    z.hp = 25;
+    z.mhp = 25;
+    z.speed = 12;
+    z.dmg = 40;
     z.color = "#c39bd3";
     z.isMini = true;
     this.zombies.push(z);
@@ -411,8 +411,12 @@ export class Game {
     for(const s of this.suns) s.update(dt);
     for(const e of this.effects) e.update(dt);
 
+    // Buzul ölünce freeze tetikle (silme işleminden ÖNCE)
     for(const p of this.plants){
       if(p.healFlash > 0) p.healFlash -= dt;
+      if(!p.alive && p.type === "buzul" && !p.frozen){
+        BH.buzul(p, 0, this);
+      }
       if(p.type==="anka" && p.form===1 && p.hp<=0){
         p.form = 2;
         p.formTimer = PL.anka.gT;
@@ -461,6 +465,12 @@ export class Game {
     const list = [];
     let c;
 
+    // KRALİÇE GARANTİLİ (15-20 arası, kesin 1 tane)
+    if(w >= 15 && w <= 20 && val >= 4){
+      list.push("kralice");
+      val -= 4;
+    }
+
     c = 0; while(c<dMax && val>=15 && list.length<cap){ list.push("dev"); val-=15; c++; }
     c = 0; while(c<bMax && val>=5 && list.length<cap){ list.push("boksor"); val-=5; c++; }
     c = 0; while(c<kMax && val>=4 && list.length<cap){ list.push("kralice"); val-=4; c++; }
@@ -469,6 +479,20 @@ export class Game {
 
     const nMax = w<=24 ? 99 : 1;
     c = 0; while(c<nMax && val>=1 && list.length<cap){ list.push("normal"); val-=1; c++; }
+
+    // 22 ve 23 katlarında her 4. zırhlı → koşucu
+    const isSwapWave = (w % 22 === 0) || (w % 23 === 0);
+    if(isSwapWave){
+      let armoredCount = 0;
+      for(let i = 0; i < list.length; i++){
+        if(list[i] === "armored"){
+          armoredCount++;
+          if(armoredCount % 4 === 0){
+            list[i] = "runner";
+          }
+        }
+      }
+    }
 
     list.sort(() => Math.random() - .5);
     this.queue = list;
