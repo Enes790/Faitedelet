@@ -27,7 +27,7 @@ export const PL = {
   anakok:{n:"Ana Kök",c:100,hp:300,col:"#27ae60",em:"🪴",dmg:60,cd:3,burst:3,bInt:.3,bMult:3,rest:4},
   alev:{n:"Alev Çiçeği",c:100,hp:300,col:"#e74c3c",em:"🔥",fire:5,direct:15,bT:6,max:3,lRT:1.5},
   ruzgar:{n:"Rüzgar Topu",c:25,hp:300,col:"#90caf9",em:"🌪️",shots:6,interval:0.5,push:0.25,stun:0.3},
-  buzul:{n:"Buzul Çiçeği",c:125,hp:500,col:"#4fc3f7",em:"🧊",slow:0.3,auraR:1.5,freezeT:3},
+  buzul:{n:"Buzul Çiçeği",c:75,hp:500,col:"#4fc3f7",em:"🧊",slow:0.3,auraR:1.5,freezeT:3},
   zipkin:{n:"Zıpkın",c:125,hp:300,col:"#8d6e63",em:"🎣",dmg:20,cd:2.1,pierce:5,rt:4.5},
   tepkiliMayin:{n:"Tepkili Mayın",c:150,hp:300,col:"#7b1fa2",em:"💣",dmg:400,max:3,arm:15,reload:25},
   cehennem:{n:"Cehennem Çiçeği",c:175,hp:300,col:"#c0392b",em:"🌋",rt:4.5}
