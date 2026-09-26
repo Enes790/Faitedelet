@@ -38,11 +38,11 @@ export const PL = {
 // Zombiler
 export const ZB = {
   normal:{n:"Normal", hp:240, spd:7, dmg:100, col:"#7a3b3b"},
-  runner:{n:"Koşucu", hp:360, spd:10, dmg:150, col:"#b85a3b"},
-  armored:{n:"Zırlı", hp:1440, spd:7, dmg:150, col:"#4a4a5a"},
+  runner:{n:"Koşucu", hp:360, spd:11, dmg:150, col:"#b85a3b"},
+  armored:{n:"Zırlı", hp:1240, spd:7, dmg:150, col:"#4a4a5a"},
   kralice:{n:"Kraliçe", hp:275, spd:6, dmg:40, col:"#8e44ad"},
   boksor:{n:"Boksör", hp:450, spd:6, dmg:200, col:"#c0392b"},
-  dev:{n:"Dev", hp:1500, spd:4, dmg:300, col:"#6b4226"}
+  dev:{n:"Dev", hp:15000, spd:2, dmg:300, col:"#6b4226"}
 };
 
 // Zombi rozetleri
