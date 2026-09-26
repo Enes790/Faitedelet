@@ -47,6 +47,7 @@ export class Zombie extends Entity {
       this.burnTimer -= dt;
     }
 
+    // Kraliçe: her 50 can gidince mini doğur
     if(this.type === "kralice" && this.alive){
       const lost = this.mhp - this.hp;
       const threshold = Math.floor(lost / 50);
@@ -58,6 +59,7 @@ export class Zombie extends Entity {
 
     if(this.freezeTimer > 0) return;
 
+    // Boksör form 1: bitkileri yok say, sadece yürü
     if(this.type === "boksor" && this.form === 1){
       this.x -= this.speed * dt;
       if(this.x + this.w < g.board.ox) g.gameOver();
@@ -77,16 +79,7 @@ export class Zombie extends Entity {
 
     if(target){
       target.hit(dmg * dt);
-      if(this.type === "boksor" && this.form === 2){
-        const above = this.row - 1;
-        const below = this.row + 1;
-        for(const p of g.plants){
-          if(!p.alive) continue;
-          if(p.row === above || p.row === below){
-            p.hit(dmg * 0.5 * dt);
-          }
-        }
-      }
+      // Boksör artık sadece kendi satırına vuruyor (üst/alt hasar kaldırıldı)
     } else {
       this.x -= spd * dt;
     }
