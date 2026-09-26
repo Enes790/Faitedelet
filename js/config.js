@@ -31,8 +31,8 @@ export const PL = {
   zipkin:{n:"Zıpkın",c:125,hp:300,col:"#8d6e63",em:"🎣",dmg:20,cd:2.1,pierce:5,rt:4.5},
   tepkiliMayin:{n:"Tepkili Mayın",c:150,hp:300,col:"#7b1fa2",em:"💣",dmg:400,max:3,arm:15,reload:25},
   cehennem:{n:"Cehennem Çiçeği",c:175,hp:300,col:"#c0392b",em:"🌋",rt:4.5},
-  saricicek:{n:"Sarı Çiçek",c:50,hp:300,col:"#f39c12",em:"🌼",dmg:8,cd:1,sunRate:20,sunVal:15,killBonus:35},
-  hançer:{n:"Hançer",c:25,hp:200,col:"#7f8c8d",em:"🗡️",shots:10,interval:0.4,minDmg:20,maxDmg:35,percent:0.07,cooldown:5}
+  saricicek:{n:"Sarı Çiçek",c:50,hp:300,col:"#f39c12",em:"🌼",dmg:7,cd:1.3,sunRate:20,sunVal:15,killBonus:35},
+  hançer:{n:"Hançer",c:25,hp:200,col:"#7f8c8d",em:"🗡️",shots:10,interval:0.2,minDmg:20,maxDmg:35,percent:0.07,cooldown:5}
 };
 
 // Zombiler
