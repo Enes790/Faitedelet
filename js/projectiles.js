@@ -67,7 +67,7 @@ export class Needle extends Entity {
   }
 }
 
-// ============ SHELL (yay mermisi) ============
+// ============ SHELL (yay mermisi - Ana Kök, Alev, Sarı Çiçek) ============
 export class Shell extends Entity {
   constructor(sx, sy, ex, row, dmg, owner){
     super(sx, sy, 22, 22);
@@ -85,9 +85,11 @@ export class Shell extends Entity {
   draw(ctx){
     const cx=this.x+11, cy=this.y+11;
     const isAna = this.owner && this.owner.type==="anakok";
-    const c = isAna
-      ? ["#1e8449","#27ae60","#a5d6a7"]
-      : ["#e74c3c","#ff8c00","#ffd700"];
+    const isSari = this.owner && this.owner.type==="saricicek";
+    let c;
+    if(isAna) c = ["#1e8449","#27ae60","#a5d6a7"];
+    else if(isSari) c = ["#f39c12","#ffd700","#fff8b0"];
+    else c = ["#e74c3c","#ff8c00","#ffd700"];
     ctx.fillStyle=c[0]; ctx.beginPath(); ctx.arc(cx,cy,11,0,6.28); ctx.fill();
     ctx.fillStyle=c[1]; ctx.beginPath(); ctx.arc(cx,cy,8,0,6.28); ctx.fill();
     ctx.fillStyle=c[2]; ctx.beginPath(); ctx.arc(cx,cy,4,0,6.28); ctx.fill();
@@ -110,9 +112,15 @@ export class Wind extends Entity {
     for(const z of g.zombies){
       if(!z.alive || z.row !== this.row) continue;
       if(this.hitZombies.has(z)) continue;
-      if(this.hitZombies.size >= this.maxTargets){ this.alive = 0; return; }
       if(this.x < z.x+z.w && this.x+this.w > z.x &&
          this.y < z.y+z.h && this.y+this.h > z.y){
+        // Mini zombi: tek atışta ölür, mermi devam eder
+        if(z.isMini){
+          z.hit(999);
+          continue;
+        }
+        // Max hedef kontrolü
+        if(this.hitZombies.size >= this.maxTargets){ this.alive = 0; return; }
         const boardRight = g.board.ox + g.board.cols*g.board.cw;
         const zcx = z.x + z.w/2;
         // Dev: ittirilemez, sadece sersemler
@@ -131,6 +139,45 @@ export class Wind extends Entity {
     ctx.fillStyle = "rgba(200,230,255,0.75)";
     ctx.beginPath(); ctx.arc(this.x+7, this.y+7, 7, 0, 6.28); ctx.fill();
     ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.stroke();
+  }
+}
+
+// ============ PERCENT BLADE (Hançer mermisi) ============
+export class PercentBlade extends Entity {
+  constructor(x, y, row){
+    super(x, y, 18, 18);
+    this.row = row;
+    this.hits = new Set();
+  }
+  update(dt, g){
+    this.x += 500 * dt;
+    if(this.x > g.width + 30){ this.alive = 0; return; }
+    for(const z of g.zombies){
+      if(!z.alive || z.row !== this.row) continue;
+      if(this.hits.has(z)) continue;
+      if(this.x < z.x+z.w && this.x+this.w > z.x &&
+         this.y < z.y+z.h && this.y+this.h > z.y){
+        // Yüzde hasar: max HP'nin %7'si, min 20, max 35
+        let dmg = z.mhp * 0.07;
+        dmg = Math.max(20, Math.min(35, dmg));
+        z.hit(dmg);
+        this.hits.add(z);
+        this.alive = 0;
+        return;
+      }
+    }
+  }
+  draw(ctx){
+    ctx.fillStyle = "#bdc3c7";
+    // Hançer şekli
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y+9);
+    ctx.lineTo(this.x+14, this.y+3);
+    ctx.lineTo(this.x+18, this.y+9);
+    ctx.lineTo(this.x+14, this.y+15);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#7f8c8d";
+    ctx.fillRect(this.x-2, this.y+7, 4, 4);
   }
 }
 
