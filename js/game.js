@@ -405,11 +405,13 @@ export class Game {
 
   // ============ UPDATE ============
   update(dt){
+    // Cooldown azalt + bitince refresh
     for(const type in this.cardCooldowns){
       if(this.cardCooldowns[type] > 0){
         this.cardCooldowns[type] -= dt;
         if(this.cardCooldowns[type] <= 0){
           delete this.cardCooldowns[type];
+          this.refreshSeeds();
         }
       }
     }
