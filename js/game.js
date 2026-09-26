@@ -100,7 +100,9 @@ export class Game {
   }
 
   explodeShell(s){
-    const isAna = s.owner && s.owner.type==="anakok";
+    const isAna = s.owner && s.owner.type === "anakok";
+    const isAlev = s.owner && s.owner.type === "alev";
+    const isSari = s.owner && s.owner.type === "saricicek";
     const maxT = isAna ? 1 : PL.alev.max;
     const r = this.board.cw * PL.alev.lRT;
     const arr = [];
@@ -112,9 +114,10 @@ export class Game {
     arr.sort((a,b) => a.d - b.d);
     for(const t of arr.slice(0, maxT)){
       t.z.hit(s.dmg);
-      if(!isAna) t.z.burnTimer = PL.alev.bT;
+      // Sadece ALEV yakar
+      if(isAlev) t.z.burnTimer = PL.alev.bT;
       // Sarı Çiçek kill bonusu
-      if(!t.z.alive && s.owner && s.owner.alive && s.owner.type === "saricicek"){
+      if(!t.z.alive && isSari && s.owner.alive){
         this.sun += PL.saricicek.killBonus;
       }
       // Ana Kök mini doğurma
@@ -205,11 +208,11 @@ export class Game {
     this.needles = [];
     this.shells = [];
     this.winds = [];
-    this.blades = [];              // Hançer mermileri
+    this.blades = [];
     this.minis = [];
     this.suns = [];
     this.effects = [];
-    this.cardCooldowns = {};       // Kart cooldown (Hançer, Rüzgar)
+    this.cardCooldowns = {};
     this.selected = null;
     this.shovelMode = false;
     this.lastTime = performance.now();
@@ -297,7 +300,6 @@ export class Game {
   }
 
   tryPlant(row, c, type){
-    // Kart cooldown kontrolü
     if(this.cardCooldowns[type] && this.cardCooldowns[type] > 0) return 0;
     if(!this.board.isFree(row, c)) return 0;
     for(const m of this.minis) if(m.alive && m.row===row && m.col===c) return 0;
@@ -346,7 +348,6 @@ export class Game {
   }
 
   selectSeed(t){
-    // Kart cooldown varsa seçilemez
     if(this.cardCooldowns[t] && this.cardCooldowns[t] > 0) return;
     if(this.selected === t) this.selected = null;
     else if(this.sun >= PL[t].c) this.selected = t;
@@ -364,16 +365,23 @@ export class Game {
 
   // ============ ANA DÖNGÜ ============
   loop(t){
-    this._fr++;
-    if(t - this._ft > 500){
-      this._fps = Math.round(this._fr * 1000 / (t - this._ft));
-      this._fr = 0;
-      this._ft = t;
-    }
-    if(this.state === "playing"){
-      const dt = cl((t - this.lastTime)/1000 || 0, 0, .05);
-      this.update(dt);
-      this.draw();
+    try {
+      this._fr++;
+      if(t - this._ft > 500){
+        this._fps = Math.round(this._fr * 1000 / (t - this._ft));
+        this._fr = 0;
+        this._ft = t;
+      }
+      if(this.state === "playing"){
+        const dt = cl((t - this.lastTime)/1000 || 0, 0, .05);
+        this.update(dt);
+        this.draw();
+      }
+    } catch(e){
+      console.error("LOOP HATA:", e.message);
+      if(document.getElementById("dbg")){
+        document.getElementById("dbg").textContent = "HATA: " + e.message;
+      }
     }
     this.lastTime = t;
     requestAnimationFrame(this._loop);
@@ -394,7 +402,6 @@ export class Game {
 
   // ============ UPDATE ============
   update(dt){
-    // Kart cooldown'ları azalt
     for(const type in this.cardCooldowns){
       if(this.cardCooldowns[type] > 0){
         this.cardCooldowns[type] -= dt;
@@ -488,7 +495,6 @@ export class Game {
     const list = [];
     let c;
 
-    // Kraliçe 15-20 arası garanti (1 tane)
     if(w >= 15 && w <= 20 && val >= 4){
       list.push("kralice");
       val -= 4;
@@ -503,7 +509,6 @@ export class Game {
     const nMax = w<=24 ? 99 : 1;
     c = 0; while(c<nMax && val>=1 && list.length<cap){ list.push("normal"); val-=1; c++; }
 
-    // 22 ve 23 katlarında her 4. zırhlı → koşucu
     const isSwapWave = (w % 22 === 0) || (w % 23 === 0);
     if(isSwapWave){
       let armoredCount = 0;
