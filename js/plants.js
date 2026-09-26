@@ -232,9 +232,7 @@ function drawBuzul(p, ctx, board){
 }
 
 function drawSariCicek(p, ctx){
-  // Sarı çiçek görseli
   const cx = p.x+p.w/2, cy = p.y+p.h/2;
-  // Taç yapraklar (5 adet sarı)
   const cs = ["#ffd700","#ffec70","#ffd700","#ffec70","#ffd700"];
   for(let i=0; i<5; i++){
     const a = (i/5)*6.28-1.57;
@@ -243,17 +241,14 @@ function drawSariCicek(p, ctx){
     ctx.arc(cx+Math.cos(a)*p.w*.24, cy+Math.sin(a)*p.h*.24, p.w*.15, 0, 6.28);
     ctx.fill();
   }
-  // Merkez
   ctx.fillStyle="#f39c12";
   ctx.beginPath(); ctx.arc(cx, cy, p.w*.14, 0, 6.28); ctx.fill();
-  // Emoji
   ctx.font=`${p.h*.35}px serif`;
   ctx.textAlign="center"; ctx.textBaseline="middle";
   ctx.fillText("🌼", cx, cy);
 }
 
 function drawHancer(p, ctx){
-  // Hançer görseli
   ctx.fillStyle="#7f8c8d";
   ctx.fillRect(p.x+2, p.y+2, p.w-4, p.h-4);
   ctx.strokeStyle="#bdc3c7";
@@ -299,32 +294,29 @@ export const BH = {
       g.peas.push(new Pea(p.x+p.w, p.y+p.h*.35, p.row, PL.peashooter.dmg, null));
     }
   },
-  // === YENİ: SARİ ÇİÇEK ===
+  // === SARİ ÇİÇEK — düz Pea + pasif güneş ===
   saricicek(p, dt, g){
-    // Mermi atışı
     p.cd -= dt;
-    if(p.cd <= 0){
-      const t = findFirst(p, g);
-      if(t){
-        p.cd = PL.saricicek.cd;
-        g.shells.push(new Shell(p.x+p.w*.5, p.y-10, t.x+t.w/2, p.row, PL.saricicek.dmg, p));
-      }
+    if(p.cd <= 0 && g.zombieInRow(p.row, p.x+p.w)){
+      p.cd = PL.saricicek.cd;
+      g.peas.push(new Pea(p.x+p.w, p.y+p.h*.35, p.row, PL.saricicek.dmg, null));
     }
-    // Güneş üretimi (20 sn'de 15)
     p.sunTimer -= dt;
     if(p.sunTimer <= 0){
       p.sunTimer = PL.saricicek.sunRate;
       g.spawnSun(p.x+p.w/2, p.y+p.h/2);
     }
   },
-  // === YENİ: HANÇER ===
+  // === HANÇER — 10 mermi sonra yok ol, cooldown başlat ===
   hançer(p, dt, g){
     if(p.shotsLeft === undefined){ p.shotsLeft = PL.hançer.shots; p.shotTimer = 0; }
     if(p.shotsLeft <= 0){
       p.alive = 0;
       if(g.board.grid[p.row][p.col] === p) g.board.remove(p.row, p.col);
-      // Kart cooldown
-      if(g.cardCooldowns) g.cardCooldowns["hançer"] = PL.hançer.cooldown;
+      if(g.cardCooldowns){
+        g.cardCooldowns["hançer"] = PL.hançer.cooldown;
+        g.refreshSeeds();
+      }
       return;
     }
     p.shotTimer -= dt;
@@ -438,12 +430,16 @@ export const BH = {
       }
     }
   },
+  // === RÜZGAR — 6 mermi sonra yok ol, cooldown başlat ===
   ruzgar(p, dt, g){
     if(p.shotsLeft === undefined){ p.shotsLeft = PL.ruzgar.shots; p.shotTimer = 0; }
     if(p.shotsLeft <= 0){
       p.alive = 0;
       if(g.board.grid[p.row][p.col] === p) g.board.remove(p.row, p.col);
-      if(g.cardCooldowns) g.cardCooldowns["ruzgar"] = PL.ruzgar.cooldown;
+      if(g.cardCooldowns){
+        g.cardCooldowns["ruzgar"] = PL.ruzgar.cooldown;
+        g.refreshSeeds();
+      }
       return;
     }
     p.shotTimer -= dt;
@@ -561,7 +557,6 @@ export class Plant extends Entity {
     this.state = undefined;
     this.armTimer = 0;
     this.reloadTimer = 0;
-    // Yeni alanlar
     this.shotsLeft = undefined;
     this.shotTimer = 0;
     if(type==="sunflower") this.sunTimer = d.first;
