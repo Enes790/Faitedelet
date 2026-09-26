@@ -113,6 +113,11 @@ export class Game {
     for(const t of arr.slice(0, maxT)){
       t.z.hit(s.dmg);
       if(!isAna) t.z.burnTimer = PL.alev.bT;
+      // Sarı Çiçek kill bonusu
+      if(!t.z.alive && s.owner && s.owner.alive && s.owner.type === "saricicek"){
+        this.sun += PL.saricicek.killBonus;
+      }
+      // Ana Kök mini doğurma
       if(!t.z.alive && isAna && s.owner.alive) this.onMotherKill(s.owner, t.z);
     }
     if(!isAna){
@@ -200,9 +205,11 @@ export class Game {
     this.needles = [];
     this.shells = [];
     this.winds = [];
+    this.blades = [];              // Hançer mermileri
     this.minis = [];
     this.suns = [];
     this.effects = [];
+    this.cardCooldowns = {};       // Kart cooldown (Hançer, Rüzgar)
     this.selected = null;
     this.shovelMode = false;
     this.lastTime = performance.now();
@@ -290,6 +297,8 @@ export class Game {
   }
 
   tryPlant(row, c, type){
+    // Kart cooldown kontrolü
+    if(this.cardCooldowns[type] && this.cardCooldowns[type] > 0) return 0;
     if(!this.board.isFree(row, c)) return 0;
     for(const m of this.minis) if(m.alive && m.row===row && m.col===c) return 0;
     if(this.sun < PL[type].c) return 0;
@@ -337,6 +346,8 @@ export class Game {
   }
 
   selectSeed(t){
+    // Kart cooldown varsa seçilemez
+    if(this.cardCooldowns[t] && this.cardCooldowns[t] > 0) return;
     if(this.selected === t) this.selected = null;
     else if(this.sun >= PL[t].c) this.selected = t;
     this.refreshSeeds();
@@ -345,8 +356,9 @@ export class Game {
   refreshSeeds(){
     document.querySelectorAll(".seed").forEach(el => {
       const t = el.dataset.type;
+      const cd = this.cardCooldowns[t] && this.cardCooldowns[t] > 0;
       el.classList.toggle("s", this.selected === t);
-      el.classList.toggle("d", this.sun < PL[t].c);
+      el.classList.toggle("d", this.sun < PL[t].c || cd);
     });
   }
 
@@ -374,6 +386,7 @@ export class Game {
     this.needles = this.needles.filter(n => n.alive);
     this.shells = this.shells.filter(s => s.alive);
     this.winds = this.winds.filter(w => w.alive);
+    this.blades = this.blades.filter(b => b.alive);
     this.minis = this.minis.filter(m => m.alive);
     this.suns = this.suns.filter(s => s.alive);
     this.effects = this.effects.filter(e => e.alive);
@@ -381,6 +394,16 @@ export class Game {
 
   // ============ UPDATE ============
   update(dt){
+    // Kart cooldown'ları azalt
+    for(const type in this.cardCooldowns){
+      if(this.cardCooldowns[type] > 0){
+        this.cardCooldowns[type] -= dt;
+        if(this.cardCooldowns[type] <= 0){
+          delete this.cardCooldowns[type];
+        }
+      }
+    }
+
     this.skyTimer -= dt;
     if(this.skyTimer <= 0){
       this.skyTimer = rf(CFG.SKY_MIN, CFG.SKY_MAX);
@@ -407,11 +430,11 @@ export class Game {
     for(const n of this.needles) n.update(dt, this);
     for(const s of this.shells) s.update(dt, this);
     for(const w of this.winds) w.update(dt, this);
+    for(const b of this.blades) b.update(dt, this);
     for(const m of this.minis) m.update(dt, this);
     for(const s of this.suns) s.update(dt);
     for(const e of this.effects) e.update(dt);
 
-    // Buzul ölünce freeze tetikle (silme işleminden ÖNCE)
     for(const p of this.plants){
       if(p.healFlash > 0) p.healFlash -= dt;
       if(!p.alive && p.type === "buzul" && !p.frozen){
@@ -465,7 +488,7 @@ export class Game {
     const list = [];
     let c;
 
-    // KRALİÇE GARANTİLİ (15-20 arası, kesin 1 tane)
+    // Kraliçe 15-20 arası garanti (1 tane)
     if(w >= 15 && w <= 20 && val >= 4){
       list.push("kralice");
       val -= 4;
@@ -538,6 +561,7 @@ export class Game {
     for(const n of this.needles) n.draw(ctx);
     for(const s of this.shells) s.draw(ctx);
     for(const w of this.winds) w.draw(ctx);
+    for(const b of this.blades) b.draw(ctx);
     for(const e of this.effects) e.draw(ctx);
     for(const s of this.suns) s.draw(ctx);
     document.getElementById("dbg").textContent =
