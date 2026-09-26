@@ -114,13 +114,13 @@ export class Game {
     arr.sort((a,b) => a.d - b.d);
     for(const t of arr.slice(0, maxT)){
       t.z.hit(s.dmg);
-      // Sadece ALEV yakar
       if(isAlev) t.z.burnTimer = PL.alev.bT;
-      // Sarı Çiçek kill bonusu
+      // Sarı Çiçek kill → zombi konumunda güneş düşür
       if(!t.z.alive && isSari && s.owner.alive){
-        this.sun += PL.saricicek.killBonus;
+        const zx = t.z.x + t.z.w/2;
+        const zy = t.z.y + t.z.h/2;
+        this.suns.push(new Sun(zx, zy, Math.min(this.height-50, zy+ri(30, 60))));
       }
-      // Ana Kök mini doğurma
       if(!t.z.alive && isAna && s.owner.alive) this.onMotherKill(s.owner, t.z);
     }
     if(!isAna){
@@ -299,6 +299,7 @@ export class Game {
     this.effects.push(new Boom(cx, cy, r));
   }
 
+  // === DÜZELTİLDİ: place ÖNCE, push SONRA ===
   tryPlant(row, c, type){
     if(this.cardCooldowns[type] && this.cardCooldowns[type] > 0) return 0;
     if(!this.board.isFree(row, c)) return 0;
@@ -307,8 +308,13 @@ export class Game {
     const cc = this.board.center(row, c);
     const w = this.board.cw*.8, h = this.board.ch*.8;
     const p = new Plant(type, row, c, cc.x-w/2, cc.y-h/2, w, h);
-    this.plants.push(p);
+    // 1) Önce grid'e yaz
     this.board.place(row, c, p);
+    // 2) Yazıldı mı doğrula
+    if(this.board.grid[row][c] !== p){ return 0; }
+    // 3) Sonra listeye ekle
+    this.plants.push(p);
+    // 4) En son güneş düş
     this.sun -= PL[type].c;
     this.refreshSeeds();
     return 1;
@@ -458,6 +464,8 @@ export class Game {
 
     this.cleanup();
     document.getElementById("sv").textContent = Math.floor(this.sun);
+    // === YENİ: Her frame kart güncelle ===
+    this.refreshSeeds();
   }
 
   // ============ DALGA ============
