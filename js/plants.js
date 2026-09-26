@@ -1,6 +1,6 @@
 import {Entity} from './entities.js';
 import {CFG, PL} from './config.js';
-import {Pea, Needle, Shell, Wind} from './projectiles.js';
+import {Pea, Needle, Shell, Wind, PercentBlade} from './projectiles.js';
 import {Heal} from './effects.js';
 import {col} from './utils.js';
 
@@ -187,17 +187,17 @@ function drawCehennem(p, ctx){
     const tx = p.laserTarget.x + p.laserTarget.w/2;
     const ty = p.laserTarget.y + p.laserTarget.h/2;
     let thick = 2;
-    if(p.rampTime >= 12) thick = 6;
-    else if(p.rampTime >= 9) thick = 5;
-    else if(p.rampTime >= 6) thick = 4;
-    else if(p.rampTime >= 3) thick = 3;
+    if(p.rampTime >= 8) thick = 6;
+    else if(p.rampTime >= 6) thick = 5;
+    else if(p.rampTime >= 4) thick = 4;
+    else if(p.rampTime >= 2) thick = 3;
     ctx.strokeStyle = `rgba(255,80,0,0.4)`;
     ctx.lineWidth = thick + 4;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
     ctx.lineTo(tx, ty);
     ctx.stroke();
-    ctx.strokeStyle = p.rampTime >= 12 ? "#ffe066" : "#ff4500";
+    ctx.strokeStyle = p.rampTime >= 8 ? "#ffe066" : "#ff4500";
     ctx.lineWidth = thick;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
@@ -231,7 +231,48 @@ function drawBuzul(p, ctx, board){
   ctx.fillText(p.em, p.x+p.w/2, p.y+p.h/2);
 }
 
-const DW = {spike:drawSpike, anakok:drawAna, alev:drawAlev, cehennem:drawCehennem, buzul:drawBuzul};
+function drawSariCicek(p, ctx){
+  // Sarı çiçek görseli
+  const cx = p.x+p.w/2, cy = p.y+p.h/2;
+  // Taç yapraklar (5 adet sarı)
+  const cs = ["#ffd700","#ffec70","#ffd700","#ffec70","#ffd700"];
+  for(let i=0; i<5; i++){
+    const a = (i/5)*6.28-1.57;
+    ctx.fillStyle=cs[i];
+    ctx.beginPath();
+    ctx.arc(cx+Math.cos(a)*p.w*.24, cy+Math.sin(a)*p.h*.24, p.w*.15, 0, 6.28);
+    ctx.fill();
+  }
+  // Merkez
+  ctx.fillStyle="#f39c12";
+  ctx.beginPath(); ctx.arc(cx, cy, p.w*.14, 0, 6.28); ctx.fill();
+  // Emoji
+  ctx.font=`${p.h*.35}px serif`;
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText("🌼", cx, cy);
+}
+
+function drawHancer(p, ctx){
+  // Hançer görseli
+  ctx.fillStyle="#7f8c8d";
+  ctx.fillRect(p.x+2, p.y+2, p.w-4, p.h-4);
+  ctx.strokeStyle="#bdc3c7";
+  ctx.lineWidth=2;
+  ctx.strokeRect(p.x+1, p.y+1, p.w-2, p.h-2);
+  ctx.font=`${p.h*.55}px serif`;
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText("🗡️", p.x+p.w/2, p.y+p.h/2);
+}
+
+const DW = {
+  spike:drawSpike,
+  anakok:drawAna,
+  alev:drawAlev,
+  cehennem:drawCehennem,
+  buzul:drawBuzul,
+  saricicek:drawSariCicek,
+  hançer:drawHancer
+};
 
 // ============ BİTKİ DAVRANIŞLARI ============
 const findFirst = (p, g) => {
@@ -256,6 +297,41 @@ export const BH = {
     if(p.cd<=0 && g.zombieInRow(p.row, p.x+p.w)){
       p.cd = PL.peashooter.cd;
       g.peas.push(new Pea(p.x+p.w, p.y+p.h*.35, p.row, PL.peashooter.dmg, null));
+    }
+  },
+  // === YENİ: SARİ ÇİÇEK ===
+  saricicek(p, dt, g){
+    // Mermi atışı
+    p.cd -= dt;
+    if(p.cd <= 0){
+      const t = findFirst(p, g);
+      if(t){
+        p.cd = PL.saricicek.cd;
+        g.shells.push(new Shell(p.x+p.w*.5, p.y-10, t.x+t.w/2, p.row, PL.saricicek.dmg, p));
+      }
+    }
+    // Güneş üretimi (20 sn'de 15)
+    p.sunTimer -= dt;
+    if(p.sunTimer <= 0){
+      p.sunTimer = PL.saricicek.sunRate;
+      g.spawnSun(p.x+p.w/2, p.y+p.h/2);
+    }
+  },
+  // === YENİ: HANÇER ===
+  hançer(p, dt, g){
+    if(p.shotsLeft === undefined){ p.shotsLeft = PL.hançer.shots; p.shotTimer = 0; }
+    if(p.shotsLeft <= 0){
+      p.alive = 0;
+      if(g.board.grid[p.row][p.col] === p) g.board.remove(p.row, p.col);
+      // Kart cooldown
+      if(g.cardCooldowns) g.cardCooldowns["hançer"] = PL.hançer.cooldown;
+      return;
+    }
+    p.shotTimer -= dt;
+    if(p.shotTimer <= 0){
+      p.shotTimer = PL.hançer.interval;
+      p.shotsLeft--;
+      g.blades.push(new PercentBlade(p.x+p.w, p.y+p.h*.35, p.row));
     }
   },
   anakok(p, dt, g){
@@ -363,16 +439,17 @@ export const BH = {
     }
   },
   ruzgar(p, dt, g){
-    if(p.windShots === undefined){ p.windShots = 0; p.windTimer = 0; }
-    if(p.windShots >= PL.ruzgar.shots){
+    if(p.shotsLeft === undefined){ p.shotsLeft = PL.ruzgar.shots; p.shotTimer = 0; }
+    if(p.shotsLeft <= 0){
       p.alive = 0;
       if(g.board.grid[p.row][p.col] === p) g.board.remove(p.row, p.col);
+      if(g.cardCooldowns) g.cardCooldowns["ruzgar"] = PL.ruzgar.cooldown;
       return;
     }
-    p.windTimer -= dt;
-    if(p.windTimer <= 0){
-      p.windTimer = PL.ruzgar.interval;
-      p.windShots++;
+    p.shotTimer -= dt;
+    if(p.shotTimer <= 0){
+      p.shotTimer = PL.ruzgar.interval;
+      p.shotsLeft--;
       g.winds.push(new Wind(p.x+p.w, p.y+p.h*.35, p.row, p));
     }
   },
@@ -432,10 +509,10 @@ export const BH = {
     const t = p.rampTime;
     let dps;
     if(t < 2)        dps = 1.7;
-    else if(t < 4)   dps = 8;
-    else if(t < 6)   dps = 20;
-    else if(t < 8)  dps = 40;
-    else             dps = 80;
+    else if(t < 4)   dps = 10;
+    else if(t < 6)   dps = 30;
+    else if(t < 8)   dps = 60;
+    else             dps = 100;
     const maxX = p.x + p.w + g.board.cw * PL.cehennem.rt;
     let target = null, bx = 1e9;
     for(const z of g.zombies){
@@ -484,7 +561,11 @@ export class Plant extends Entity {
     this.state = undefined;
     this.armTimer = 0;
     this.reloadTimer = 0;
+    // Yeni alanlar
+    this.shotsLeft = undefined;
+    this.shotTimer = 0;
     if(type==="sunflower") this.sunTimer = d.first;
+    if(type==="saricicek") this.sunTimer = d.sunRate;
     if(type==="mine") this.armTimer = d.arm;
     if(type==="spike") this.tickTimer = d.tick;
     if(type==="shifaci") this.cd = d.cd;
