@@ -1,7 +1,7 @@
 import {Entity} from './entities.js';
 import {CFG, PL} from './config.js';
 import {Pea, Needle, Shell, Wind, PercentBlade} from './projectiles.js';
-import {Heal} from './effects.js';
+import {Heal, Boom} from './effects.js';
 import {col} from './utils.js';
 
 // ============ MİNİ FİLİZ ============
@@ -259,6 +259,108 @@ function drawHancer(p, ctx){
   ctx.fillText("🗡️", p.x+p.w/2, p.y+p.h/2);
 }
 
+// === YENİ: CEPHANELİ ÇİZİMİ ===
+function drawCephaneli(p, ctx){
+  const cx = p.x + p.w/2;
+  const cy = p.y + p.h/2;
+  const isMega = p.charge >= PL.cephaneli.maxCharge;
+
+  // Şarj aurası (charge arttıkça güçlenir)
+  if(p.charge > 0){
+    const auraStr = p.charge / PL.cephaneli.maxCharge;
+    const pulse = .15 + auraStr * .25;
+    ctx.fillStyle = `rgba(255,215,0,${pulse})`;
+    ctx.fillRect(p.x - 2, p.y - 2, p.w + 4, p.h + 4);
+  }
+
+  // Gövde
+  ctx.fillStyle = p.color;
+  ctx.fillRect(p.x+2, p.y+2, p.w-4, p.h-4);
+
+  // Mega hazır → kırmızı yanıp sönen çerçeve
+  if(isMega){
+    const pu = .5 + .5 * Math.sin(performance.now()/100);
+    ctx.strokeStyle = `rgba(255,60,0,${pu})`;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(p.x+1, p.y+1, p.w-2, p.h-2);
+  } else {
+    ctx.strokeStyle = "#37474f";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(p.x+1, p.y+1, p.w-2, p.h-2);
+  }
+
+  // Emoji
+  ctx.font=`${p.h*.55}px serif`;
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText("🔫", cx, cy);
+
+  // Mega hazır → üstünde 💥 ikonu
+  if(isMega){
+    const pu = .6 + .4 * Math.sin(performance.now()/150);
+    ctx.font=`${p.h*0.3}px serif`;
+    ctx.fillStyle = `rgba(255,255,0,${pu})`;
+    ctx.fillText("💥", cx, p.y - 6);
+  }
+
+  // Cephane barı (alt)
+  const barY = p.y + p.h + 2;
+  const barX = p.x + 2;
+  const barW = p.w - 4;
+  const segCount = PL.cephaneli.maxCharge;
+  const segW = barW / segCount;
+  for(let i = 0; i < segCount; i++){
+    if(i < p.charge){
+      if(isMega){
+        const pu = .6 + .4 * Math.sin(performance.now()/80);
+        ctx.fillStyle = `rgba(255,${Math.floor(100 + 100*pu)},0,1)`;
+      } else {
+        ctx.fillStyle = "#ffd700";
+      }
+    } else {
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+    }
+    ctx.fillRect(barX + i*segW, barY, segW - 1, 3);
+  }
+}
+
+// === YENİ: YUTAN ÇİZİMİ ===
+function drawYutan(p, ctx){
+  const cx = p.x + p.w/2;
+  const cy = p.y + p.h/2;
+
+  // Gövde
+  ctx.fillStyle = p.color;
+  ctx.fillRect(p.x+2, p.y+2, p.w-4, p.h-4);
+
+  // Form 2 → şişkin karın
+  if(p.form === 2){
+    ctx.fillStyle = "#4a148c";
+    ctx.beginPath();
+    ctx.ellipse(cx, p.y + p.h * 0.8, p.w * 0.4, p.h * 0.15, 0, 0, 6.28);
+    ctx.fill();
+    ctx.strokeStyle = "#6a1b9a";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Çerçeve
+  ctx.strokeStyle = "#4a148c";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(p.x+1, p.y+1, p.w-2, p.h-2);
+
+  // Emoji
+  ctx.font=`${p.h*(p.form === 2 ? .6 : .55)}px serif`;
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText("🐉", cx, cy);
+
+  // Form 2 → heal vaadi bandı (y-7)
+  if(p.form === 2){
+    const pct = 1 - p.digestTimer / PL.yutan.eatTime;
+    ctx.fillStyle = "#a855f7";
+    ctx.fillRect(p.x, p.y - 7, p.w * pct, 2);
+  }
+}
+
 const DW = {
   spike:drawSpike,
   anakok:drawAna,
@@ -266,7 +368,9 @@ const DW = {
   cehennem:drawCehennem,
   buzul:drawBuzul,
   saricicek:drawSariCicek,
-  hançer:drawHancer
+  "hançer":drawHancer,
+  cephaneli:drawCephaneli,
+  yutan:drawYutan
 };
 
 // ============ BİTKİ DAVRANIŞLARI ============
@@ -294,7 +398,6 @@ export const BH = {
       g.peas.push(new Pea(p.x+p.w, p.y+p.h*.35, p.row, PL.peashooter.dmg, null));
     }
   },
-  // === SARİ ÇİÇEK — düz Pea + pasif güneş ===
   saricicek(p, dt, g){
     p.cd -= dt;
     if(p.cd <= 0 && g.zombieInRow(p.row, p.x+p.w)){
@@ -307,23 +410,116 @@ export const BH = {
       g.spawnSun(p.x+p.w/2, p.y+p.h/2);
     }
   },
-  // === HANÇER — 10 mermi sonra yok ol, cooldown başlat ===
-  hançer(p, dt, g){
-    if(p.shotsLeft === undefined){ p.shotsLeft = PL.hançer.shots; p.shotTimer = 0; }
+  "hançer"(p, dt, g){
+    if(p.shotsLeft === undefined){ p.shotsLeft = PL["hançer"].shots; p.shotTimer = 0; }
     if(p.shotsLeft <= 0){
       p.alive = 0;
       if(g.board.grid[p.row][p.col] === p) g.board.remove(p.row, p.col);
       if(g.cardCooldowns){
-        g.cardCooldowns["hançer"] = PL.hançer.cooldown;
+        g.cardCooldowns["hançer"] = PL["hançer"].cooldown;
         g.refreshSeeds();
       }
       return;
     }
     p.shotTimer -= dt;
     if(p.shotTimer <= 0){
-      p.shotTimer = PL.hançer.interval;
+      p.shotTimer = PL["hançer"].interval;
       p.shotsLeft--;
       g.blades.push(new PercentBlade(p.x+p.w, p.y+p.h*.35, p.row));
+    }
+  },
+  // === YENİ: CEPHANELİ ===
+  cephaneli(p, dt, g){
+    if(p.charge === undefined){ p.charge = 0; p.chargeTimer = 0; }
+
+    // 1) Şarj birikimi (her zaman)
+    p.chargeTimer += dt;
+    if(p.chargeTimer >= PL.cephaneli.chargeTime){
+      p.chargeTimer -= PL.cephaneli.chargeTime;
+      if(p.charge < PL.cephaneli.maxCharge) p.charge++;
+    }
+
+    // 2) Normal atış (0.7 sn) — sadece menzilde zombi varsa
+    p.cd -= dt;
+    const rangeEnd = p.x + p.w + g.board.cw * PL.cephaneli.range;
+    const inRange = (z) => z.alive && z.row === p.row && z.x > p.x + p.w && z.x < rangeEnd;
+
+    if(p.cd <= 0 && g.zombies.some(inRange)){
+      p.cd = PL.cephaneli.normalCd;
+      g.peas.push(new Pea(p.x+p.w, p.y+p.h*.35, p.row, PL.cephaneli.peaDmg, null));
+    }
+
+    // 3) Mega tetikleme (charge full + zombi menzilde)
+    if(p.charge >= PL.cephaneli.maxCharge){
+      const target = g.zombies.find(inRange);
+      if(target){
+        // Ana hasar
+        target.hit(PL.cephaneli.megaDmg);
+        // AoE
+        const tx = target.x + target.w/2;
+        const ty = target.y + target.h/2;
+        const r = g.board.cw * PL.cephaneli.megaAoE;
+        for(const z of g.zombies){
+          if(!z.alive || z === target) continue;
+          const zcx = z.x + z.w/2;
+          const zcy = z.y + z.h/2;
+          if((zcx-tx)**2 + (zcy-ty)**2 < r*r){
+            z.hit(PL.cephaneli.megaAoEDmg);
+          }
+        }
+        // Görsel
+        g.effects.push(new Boom(tx, ty, r, ["255,140,0","255,60,0"]));
+        // Şarj sıfırla
+        p.charge = 0;
+        p.chargeTimer = 0;
+      }
+    }
+  },
+  // === YENİ: YUTAN ===
+  yutan(p, dt, g){
+    if(p.digestTimer === undefined) p.digestTimer = 0;
+
+    const cx = p.x + p.w/2;
+    const range = g.board.cw * PL.yutan.nearRange;
+
+    // Menzildeki zombiler
+    const inRange = (z) => {
+      if(!z.alive || z.row !== p.row) return false;
+      const zcx = z.x + z.w/2;
+      return Math.abs(zcx - cx) <= range;
+    };
+
+    // 1) Yakın hasar (her iki formda da)
+    p.cd -= dt;
+    if(p.cd <= 0){
+      const target = g.zombies.find(inRange);
+      if(target){
+        target.hit(PL.yutan.nearDmg);
+        p.cd = PL.yutan.nearCd;
+      }
+    }
+
+    // 2) Sindirim timer
+    if(p.form === 2){
+      p.digestTimer -= dt;
+      if(p.digestTimer <= 0){
+        p.hp = Math.min(p.mhp, p.hp + PL.yutan.heal);
+        p.healFlash = 0.9;
+        g.effects.push(new Heal(p, PL.yutan.heal, 0));
+        p.form = 1;
+        p.digestTimer = 0;
+      }
+      return;
+    }
+
+    // 3) Yutma (form 1)
+    const eatTarget = g.zombies.find(z => inRange(z) && z.hp <= PL.yutan.eatThreshold);
+    if(eatTarget){
+      eatTarget.alive = 0;
+      p.form = 2;
+      p.digestTimer = PL.yutan.eatTime;
+      // Küçük efekt
+      g.effects.push(new Boom(p.x+p.w/2, p.y+p.h/2, p.w*0.5, ["160,60,220","120,40,180"]));
     }
   },
   anakok(p, dt, g){
@@ -430,7 +626,6 @@ export const BH = {
       }
     }
   },
-  // === RÜZGAR — 6 mermi sonra yok ol, cooldown başlat ===
   ruzgar(p, dt, g){
     if(p.shotsLeft === undefined){ p.shotsLeft = PL.ruzgar.shots; p.shotTimer = 0; }
     if(p.shotsLeft <= 0){
@@ -559,6 +754,10 @@ export class Plant extends Entity {
     this.reloadTimer = 0;
     this.shotsLeft = undefined;
     this.shotTimer = 0;
+    // Yeni alanlar
+    this.charge = 0;
+    this.chargeTimer = 0;
+    this.digestTimer = 0;
     if(type==="sunflower") this.sunTimer = d.first;
     if(type==="saricicek") this.sunTimer = d.sunRate;
     if(type==="mine") this.armTimer = d.arm;
