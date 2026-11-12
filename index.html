@@ -46,7 +46,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;touch-action
 <div id="bar"></div>
 <div id="selname"></div>
 <div id="mhud"><span id="mn"></span><span id="mbar"><i id="mfill"></i></span></div>
-<div id="hint">Joystick: yürü ve nişan al. KIR'a basılı tut → joystick yönündeki bloğu kır. KOY → önizlemedeki boşluğa koy. Ağaçlar arka planda, içinden geçebilirsin ama kırıp odun toplayabilirsin.</div>
+<div id="hint">Joystick: yürü ve nişan al. KIR'a basılı tut → joystick yönündeki bloğu kır. KOY → önizlemedeki boşluğa koy. Taş kazma taşı hızlı kırar, demir için taş kazma şart gibi!</div>
 <div id="stick"><div id="knob"></div></div>
 <div id="panel"></div>
 <div class="btn" id="craft">ENVAN<br>TER</div>
@@ -59,8 +59,11 @@ const dc=document.createElement('canvas'),dg=dc.getContext('2d');
 const pan=document.getElementById('panel'),barEl=document.getElementById('bar'),selname=document.getElementById('selname');
 const mh=document.getElementById('mhud'),mn=document.getElementById('mn'),mfill=document.getElementById('mfill');
 const W=200,H=64,pw=.7,ph=1.8,REACH=4.5,RD2=42;
-const BASE={1:'#7a5230',2:'#7a5230',3:'#7f7f7f',4:'#6b4a24',5:'#2f7d2a',6:'#e0d08a',7:'#b8864b',8:'#7f7f7f',14:'#ff8c00'};
-const SPK={1:'#5e3f22',2:'#5e3f22',3:'#6a6a6a',5:'#245f20',6:'#c9b870',8:'#6a6a6a'};
+// ID: 1 çimen 2 toprak 3 taş 4 odun 5 yaprak 6 kum 7 kalas 8 kömür cevheri 9 çubuk
+// 10 odun kazma 11 taş kazma 12 tahta balta 13 tahta kürek 14 meşale
+// 15 demir cevheri 16 demir külçe 17 taş balta 18 taş kürek
+const BASE={1:'#7a5230',2:'#7a5230',3:'#7f7f7f',4:'#6b4a24',5:'#2f7d2a',6:'#e0d08a',7:'#b8864b',8:'#7f7f7f',14:'#ff8c00',15:'#7f7f7f'};
+const SPK={1:'#5e3f22',2:'#5e3f22',3:'#6a6a6a',5:'#245f20',6:'#c9b870',8:'#6a6a6a',15:'#d4a373'};
 const w=new Uint8Array(W*H),bg=new Uint8Array(W*H);
 const seed=Math.random()*1000;
 const hgt=x=>Math.floor(24+Math.sin(x*.07+seed)*5+Math.sin(x*.19+seed*2)*2.5+Math.sin(x*.023+seed)*6);
@@ -69,7 +72,11 @@ function getBg(x,y){if(x<0||x>=W||y<0||y>=H)return 0;return bg[y*W+x]}
 (function gen(){
  for(let x=0;x<W;x++){const h=hgt(x),sandy=h>=29;
   for(let y=h;y<H;y++){const d=y-h;let b;
-   if(sandy&&d<3)b=6;else if(d==0)b=1;else if(d<4)b=2;else{b=3;if(d>6&&Math.random()<.05)b=8}
+   if(sandy&&d<3)b=6;else if(d==0)b=1;else if(d<4)b=2;else{
+     b=3;const r=Math.random();
+     if(d>10&&r<.02)b=15;        // demir cevheri (derin, nadir)
+     else if(d>6&&r<.06)b=8;     // kömür cevheri (daha sığ, daha sık)
+   }
    if(y>h+6&&y<H-1){const n=Math.sin(x*.21+seed)*Math.sin(y*.27)+Math.sin(x*.09+y*.13);if(n>1.15)b=0}
    w[y*W+x]=b}}
  for(let x=3;x<W-3;x+=4+Math.floor(Math.random()*5)){const h=hgt(x);if(w[h*W+x]!=1)continue;
@@ -94,16 +101,32 @@ let actHeld=false,placeHeld=false,placeCd=0,chipT=0,swingT=0,armA=1.4;
 let aimX=1,aimY=0,AIM={hit:null,place:null,hitLayer:'w'},sx=0,sy=0,sid=null,jumpBtn=false;
 
 // ---------- eşyalar ----------
-const NAME={1:'Çimen',2:'Toprak',3:'Taş',4:'Odun',5:'Yaprak',6:'Kum',7:'Kalas',8:'Kömür',9:'Çubuk',10:'Odun kazma',11:'Taş kazma',12:'Balta',13:'Kürek',14:'Meşale'};
-const IC={...BASE,9:'#8a6a35',10:'#b8864b',11:'#9a9a9a',12:'#c08a4a',13:'#a0a0a0'};
-const GL={9:'╱',10:'⛏',11:'⛏',12:'🪓',13:'⚒',14:'🔥'};
-const REC=[[7,4,{4:1}],[9,4,{7:2}],[14,4,{8:2,9:1}],[10,1,{7:3,9:2}],[11,1,{3:3,9:2}],[12,1,{7:3,9:2}],[13,1,{7:1,9:2}]];
-const HARD={1:.7,2:.7,3:3.5,4:1.4,5:.25,6:.6,7:1.4,8:4,14:.3};
-const PLACE=new Set([2,3,4,5,6,7,8,14]);
+const NAME={1:'Çimen',2:'Toprak',3:'Taş',4:'Odun',5:'Yaprak',6:'Kum',7:'Kalas',8:'Kömür',9:'Çubuk',
+ 10:'Odun kazma',11:'Taş kazma',12:'Tahta balta',13:'Tahta kürek',14:'Meşale',
+ 15:'Demir cevheri',16:'Demir',17:'Taş balta',18:'Taş kürek'};
+const IC={...BASE,9:'#8a6a35',10:'#b8864b',11:'#9a9a9a',12:'#c08a4a',13:'#a0a0a0',
+ 16:'#c0c0c0',17:'#9a9a9a',18:'#9a9a9a'};
+const GL={9:'╱',10:'⛏',11:'⛏',12:'🪓',13:'⚒',14:'🔥',17:'🪓',18:'⚒'};
+// Tarif: [sonuç, adet, {malzeme:adet}]
+const REC=[
+ [7,4,{4:1}],              // Kalas x4 (odun 1)
+ [9,4,{7:2}],              // Çubuk x4 (kalas 2)
+ [14,4,{8:2,9:1}],         // Meşale x4 (kömür 2 + çubuk 1)
+ [10,1,{7:3,9:2}],         // Odun kazma
+ [11,1,{3:3,9:2}],         // Taş kazma
+ [12,1,{7:3,9:2}],         // Tahta balta
+ [13,1,{7:1,9:2}],         // Tahta kürek
+ [17,1,{3:3,9:2}],         // Taş balta
+ [18,1,{3:1,9:2}],         // Taş kürek
+];
+// Kırma sertliği (saniye cinsinden taban süre, el ile)
+const HARD={1:1.0,2:1.0,3:5.0,4:2.2,5:0.5,6:1.2,7:2.2,8:6.0,14:0.6,15:7.5};
+const PLACE=new Set([2,3,4,5,6,7,8,14,15]);
 const MAXS=64,NS=27;
 const slots=new Array(NS).fill(null);
 let sel=0,mv=null;
-const isTool=id=>id>=10&&id<=13;
+const TOOL_SET=new Set([10,11,12,13,17,18]);
+const isTool=id=>TOOL_SET.has(id);
 const stackMax=id=>isTool(id)?1:MAXS;
 const icon=id=>'<i class="ic" style="background:'+IC[id]+'">'+(GL[id]||'')+'</i>';
 function count(id){let c=0;for(const s of slots)if(s&&s.id==id)c+=s.n;return c}
@@ -113,8 +136,19 @@ function addItem(id,n){n=n||1;const m=stackMax(id);
  for(let i=0;i<NS&&n>0;i++){if(!slots[i]){const a=Math.min(n,m);slots[i]={id,n:a};n-=a}}
  refresh();return n}
 function take(id,n){for(let i=NS-1;i>=0&&n>0;i--){const s=slots[i];if(s&&s.id==id){const a=Math.min(n,s.n);s.n-=a;n-=a;if(!s.n)slots[i]=null}}refresh()}
-const toolLv=()=>count(11)>0?2:count(10)>0?1:0;
-const mineTime=b=>{let m=1;if(b==3||b==8)m=[1,2.4,3.8][toolLv()];else if(b==4||b==7)m=count(12)>0?2.5:1;else if(b==1||b==2||b==6||b==14)m=count(13)>0?2.5:1;return HARD[b]/m};
+
+// Alet seviyeleri (0=el, 1=odun/tahta, 2=taş)
+const pickLv=()=>count(11)>0?2:count(10)>0?1:0;
+const axeLv=()=>count(17)>0?2:count(12)>0?1:0;
+const shovelLv=()=>count(18)>0?2:count(13)>0?1:0;
+
+// Kırma süresi hesabı
+const mineTime=b=>{
+ if(b==3||b==8||b==15)return HARD[b]/[1,2.2,3.8][pickLv()];   // taş, kömür, demir → kazma
+ if(b==4||b==7)return HARD[b]/[1,2.8,4.2][axeLv()];           // odun, kalas → balta
+ if(b==1||b==2||b==6||b==14)return HARD[b]/[1,2.8,4.2][shovelLv()]; // toprak/çimen/kum/meşale → kürek
+ return HARD[b];
+};
 
 // ---------- hızlı çubuk ----------
 const slotEls=[];
@@ -135,7 +169,7 @@ function renderPan(){
  let h='<h3>Envanter <u id="px">Kapat</u></h3><div class="info">'+(m?'Taşınıyor: <b>'+NAME[m.id]+' ×'+m.n+'</b> — hedef kutuya dokun <u id="drop">At</u>':'Bir eşyaya dokun, sonra başka kutuya dokunarak taşı. Alttaki 9 kutu hızlı çubuk.')+'</div>';
  h+='<div class="g9">';for(let i=9;i<NS;i++)h+=cellHTML(i);
  h+='</div><div class="sep"></div><div class="g9">';for(let i=0;i<9;i++)h+=cellHTML(i);h+='</div>';
- h+='<h3>Üretim <small>Kazma: '+['El','Odun','Taş'][toolLv()]+'</small></h3>';
+ h+='<h3>Üretim <small>Kazma: '+['El','Odun','Taş'][pickLv()]+' · Balta: '+['El','Tahta','Taş'][axeLv()]+'</small></h3>';
  REC.forEach((r,i)=>{h+='<div class="rc"><div class="ico">'+icon(r[0])+'</div><span><b>'+NAME[r[0]]+(r[1]>1?' ×'+r[1]:'')+'</b><br>'+Object.keys(r[2]).map(k=>'<em style="font-style:normal;color:'+(count(+k)>=r[2][k]?'#8f8':'#f88')+'">'+NAME[k]+' '+Math.min(count(+k),99)+'/'+r[2][k]+'</em>').join(' + ')+'</span><button data-i="'+i+'"'+(can(r)?'':' disabled')+'>'+(isTool(r[0])&&count(r[0])>0?'Var':'Üret')+'</button></div>'});
  pan.innerHTML=h}
 function cellTap(i){
@@ -185,7 +219,10 @@ const CR=[];(function(){let r=12345;const rnd=()=>(r=(r*1664525+1013904223)>>>0)
 function breakB(tx,ty,layer){const i=ty*W+tx;let b;
  if(layer=='bg'){b=bg[i];if(!b)return;bg[i]=0}
  else{b=w[i];if(!b)return;w[i]=0}
- const d=b==1?2:b;
+ // düşecek eşya: çimen→toprak, demir cevheri→demir külçe
+ let d=b;
+ if(b==1)d=2;
+ else if(b==15)d=16;
  drops.push({x:tx+.5,y:ty+.5,vy:-3,b:d,age:0});
  for(let n=0;n<14;n++)parts.push({x:tx+.15+Math.random()*.7,y:ty+.15+Math.random()*.7,vx:(Math.random()-.5)*5,vy:-Math.random()*5-1,l:.6+Math.random()*.4,c:n%3?BASE[b]:(SPK[b]||BASE[b]),s:.08+Math.random()*.1});
  pops.push({x:tx,y:ty,t:.28,c:BASE[b]});
@@ -268,7 +305,6 @@ function update(dt){
  if(coll(px,py)){if(vy>0){py=Math.floor(py+ph)-ph-.001;ground=true}else py=Math.floor(py)+1.001;vy=0}
  if(py>H+5){px=W/2;py=hgt(W/2)-3;vy=0}
  if(mx&&ground)anim+=dt*12;else if(!mx)anim=0;
- // joystick yönü = nişan; bırakılınca son yön kalır
  if(Math.hypot(sx,sy)>.35){const k=(Math.round(Math.atan2(sy,sx)/(Math.PI/4))+8)%8;aimX=DIRS[k][0];aimY=DIRS[k][1]}
  AIM=aimTargets();
  mineStep(dt);
@@ -281,7 +317,7 @@ function update(dt){
 
 // ---------- çizim ----------
 function tile(b,x,y,X,Y){
- if(b==14){
+ if(b==14){ // meşale
    const bx=x+S*.42,by=y+S*.45,bw=S*.16,bh=S*.55;
    g.fillStyle='#5a3a1a';g.fillRect(bx,by,bw,bh);
    g.fillStyle='#ff8c00';g.fillRect(bx-S*.05,by-S*.14,bw+S*.1,S*.2);
@@ -292,10 +328,13 @@ function tile(b,x,y,X,Y){
  if(b==1){g.fillStyle='#5aa832';g.fillRect(x,y,S+1,Math.ceil(S*.28))}
  if(b==4){g.fillStyle='#53381a';for(let i=1;i<4;i++)g.fillRect(x+S*i/4,y,2,S+1)}
  else if(b==7){g.fillStyle='#8f6535';g.fillRect(x,y+S/2-1,S+1,2);g.fillRect(x,y,S+1,2);g.fillRect(x,y+S-2,S+1,2)}
- else if(SPK[b]){g.fillStyle=SPK[b];const big=b==8;
-  for(let n=0;n<(big?5:4);n++){const r=(((X*374761393+Y*668265263)^(n*1274126177))>>>0);
+ else if(SPK[b]){g.fillStyle=SPK[b];const big=(b==8||b==15);
+  for(let n=0;n<(big?6:4);n++){const r=(((X*374761393+Y*668265263)^(n*1274126177))>>>0);
    const ox=(r&7)/8*S*.8,oy=((r>>3)&7)/8*S*.8,sz=S*(big?.22:.16);
-   if(big)g.fillStyle='#202020';g.fillRect(x+ox,y+oy,sz,sz)}}}
+   if(b==8)g.fillStyle='#202020';
+   else if(b==15)g.fillStyle='#d4a373';
+   g.fillRect(x+ox,y+oy,sz,sz);
+   if(b==15){g.fillStyle='#f0c090';g.fillRect(x+ox+1,y+oy+1,sz-2,sz-3)}}}}
 function mix(a,b,t){return a.map((v,i)=>Math.round(v+(b[i]-v)*t))}
 function drawCrack(x,y,p,X,Y){
  g.fillStyle='rgba(0,0,0,'+(p*.42)+')';g.fillRect(x,y,S,S);
@@ -310,7 +349,7 @@ function drawCrack(x,y,p,X,Y){
   g.stroke()}}
 function drawFx(t){
  for(const o of drops){const x=(o.x-camX)*S,y=(o.y-camY+Math.sin(t*5+o.x)*.05)*S,z=S*.3;
-  g.fillStyle='rgba(0,0,0,.3)';g.fillRect(x-z/2,y+z/2,z,3);g.fillStyle=BASE[o.b];g.fillRect(x-z/2,y-z/2,z,z);
+  g.fillStyle='rgba(0,0,0,.3)';g.fillRect(x-z/2,y+z/2,z,3);g.fillStyle=(IC[o.b]||BASE[o.b]);g.fillRect(x-z/2,y-z/2,z,z);
   g.strokeStyle='rgba(0,0,0,.6)';g.lineWidth=1;g.strokeRect(x-z/2,y-z/2,z,z)}
  const s=slots[sel],a=AIM;
  if(s&&PLACE.has(s.id)&&a.place){const x=(a.place[0]-camX)*S,y=(a.place[1]-camY)*S;
@@ -327,8 +366,7 @@ function drawFx(t){
  if(mine){const b=mine.layer=='bg'?getBg(mine.tx,mine.ty):get(mine.tx,mine.ty);
   if(b){const x=(mine.tx-camX)*S,y=(mine.ty-camY)*S,p=mine.p;
    if(p>0){drawCrack(x,y,p,mine.tx,mine.ty);
-    const col=mine.layer=='bg'?'255,210,60':'255,210,60';
-    g.strokeStyle='rgba('+col+','+(.7+.3*Math.sin(t*12))+')';g.lineWidth=3;g.strokeRect(x+1.5,y+1.5,S-3,S-3);
+    g.strokeStyle='rgba(255,210,60,'+(.7+.3*Math.sin(t*12))+')';g.lineWidth=3;g.strokeRect(x+1.5,y+1.5,S-3,S-3);
     g.fillStyle='rgba(0,0,0,.6)';g.fillRect(x,y-10,S,7);g.fillStyle='#ffd23c';g.fillRect(x+1,y-9,(S-2)*p,5)}}}
  for(const q of pops){const k=1-q.t/.28,sz=S*(1+k*.5),x=(q.x+.5-camX)*S-sz/2,y=(q.y+.5-camY)*S-sz/2;
   g.globalAlpha=Math.max(0,1-k)*.7;g.fillStyle=q.c;g.fillRect(x,y,sz,sz);g.globalAlpha=1}
@@ -338,11 +376,9 @@ function draw(){
  const c=mix([11,16,48],[135,206,235],Math.min(1,day*1.6));
  g.fillStyle='rgb('+c+')';g.fillRect(0,0,VW,VH);
  const x0=Math.floor(camX),y0=Math.floor(camY),x1=Math.ceil(camX+VW/S),y1=Math.ceil(camY+VH/S);
- // arka plan katmanı (koyu overlay)
  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){if(x<0||x>=W||y<0||y>=H)continue;
   const b=bg[y*W+x];if(b){const sx=Math.floor((x-camX)*S),sy=Math.floor((y-camY)*S);
    tile(b,sx,sy,x,y);g.fillStyle='rgba(15,20,35,.55)';g.fillRect(sx,sy,S+1,S+1)}}
- // ön plan katmanı
  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const b=get(x,y);if(b)tile(b,Math.floor((x-camX)*S),Math.floor((y-camY)*S),x,y)}
  drawFx(Date.now()/1000);
  const X=(px-camX)*S,Y=(py-camY)*S,u=S;
@@ -351,13 +387,12 @@ function draw(){
  g.fillStyle='#3b3b9c';g.fillRect(-.22*u+sw,1.2*u,.2*u,.6*u);g.fillRect(.02*u-sw,1.2*u,.2*u,.6*u);
  g.fillStyle='#2aa0a8';g.fillRect(-.25*u,.6*u,.5*u,.62*u);
  g.save();g.translate(0,.68*u);g.rotate(armA);g.fillStyle='#c68e6a';g.fillRect(0,-.08*u,.55*u,.16*u);
- {const tl=toolLv();if(tl){g.fillStyle='#6b4a24';g.fillRect(.2*u,-.03*u,.4*u,.06*u);g.fillStyle=tl==2?'#aaa':'#b8864b';g.fillRect(.5*u,-.22*u,.12*u,.44*u)}}
+ {const tl=pickLv();if(tl){g.fillStyle='#6b4a24';g.fillRect(.2*u,-.03*u,.4*u,.06*u);g.fillStyle=tl==2?'#aaa':'#b8864b';g.fillRect(.5*u,-.22*u,.12*u,.44*u)}}
  g.restore();
  g.fillStyle='#c68e6a';g.fillRect(-.3*u,0,.6*u,.6*u);
  g.fillStyle='#3a2412';g.fillRect(-.3*u,0,.6*u,.17*u);
  g.fillStyle='#fff';g.fillRect(.08*u,.25*u,.14*u,.1*u);g.fillStyle='#222';g.fillRect(.15*u,.26*u,.07*u,.08*u);
  g.restore();
- // karanlık + meşale ışıkları
  const dark=Math.max(0,.55-day*.9);
  if(dark>0){
   dg.clearRect(0,0,VW,VH);
@@ -371,7 +406,6 @@ function draw(){
     dg.fillStyle=grad;dg.beginPath();dg.arc(tx,ty,R,0,6.283);dg.fill()}}
   dg.globalCompositeOperation='source-over';
   g.drawImage(dc,0,0,VW,VH);
-  // meşale sıcak ışık halesi
   g.globalCompositeOperation='lighter';
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){if(x<0||x>=W||y<0||y>=H)continue;
    if(w[y*W+x]==14){
@@ -391,4 +425,4 @@ addItem(14,4);addItem(2,10);addItem(7,12);showName();
 let last=performance.now();
 function loop(n){const dt=Math.min(.05,(n-last)/1000);last=n;update(dt);draw();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
-</script></body></html> 
+</script></body></html>
