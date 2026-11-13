@@ -132,16 +132,16 @@ function computeSkyExposure(){
  for(let x=0;x<W;x++){
   let exposed=1;
   for(let y=0;y<H;y++){
-   if(w[y*W+x]!==0)exposed=0;
    skyExposed[y*W+x]=exposed;
+   if(w[y*W+x]!==0)exposed=0;
   }
  }
 }
 function updateSkyColumn(x){
  let exposed=1;
  for(let y=0;y<H;y++){
-  if(w[y*W+x]!==0)exposed=0;
   skyExposed[y*W+x]=exposed;
+  if(w[y*W+x]!==0)exposed=0;
  }
 }
 computeSkyExposure();
