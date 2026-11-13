@@ -33,8 +33,8 @@ function plantTree(x,h,t){
   for(let i=0;i<n;i++){const x=Math.floor(Math.random()*W),surf=hgt(x);
    const y=surf+minD+Math.floor(Math.random()*Math.max(1,H-1-surf-minD));
    vein(x,y,type,sMin+Math.floor(Math.random()*(sMax-sMin+1)))}}
- scatter(8,80,3,3,7);
- scatter(15,28,8,2,4);
+ scatter(8,240,3,4,8);
+ scatter(15,180,8,1,6);
 })();
 
 function scanLights(){lights=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const b=w[y*W+x];if(b==14||b==19)lights.push([x,y,b])}}
