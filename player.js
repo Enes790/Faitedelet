@@ -46,8 +46,9 @@ function breakB(tx,ty,layer){
  let d=b;if(b==1)d=2;else if(b==15)d=16;
  drops.push({x:tx+.5,y:ty+.5,vy:-3,b:d,age:0});
  burst(tx+.5,ty+.5,14,BASE[b],5);
- pops.push({x:tx,y:ty,t:.28,c:BASE[b]});
- shakeT=0.08;buzz(14)}
+pops.push({x:tx,y:ty,t:.28,c:BASE[b]});
+updateSkyColumn(tx);
+shakeT=0.08;buzz(14)}
 function chip(tx,ty,c){parts.push({x:tx+.5+(Math.random()-.5)*.6,y:ty+.5+(Math.random()-.5)*.6,vx:(Math.random()-.5)*3,vy:-Math.random()*3,l:.45,c,s:.09})}
 function placeAt(tx,ty){
  const s=slots[sel];if(!s||!PLACE.has(s.id))return false;
