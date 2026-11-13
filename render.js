@@ -85,7 +85,7 @@ function drawMob(m,now){
  }
 }
 
-// ==================== FX (mermi, drop, hedef) ====================
+// ==================== FX ====================
 function drawFx(t,now){
  for(const m of mobs)if(!m.dead)drawMob(m,now);
  for(const a of arrows){
@@ -239,23 +239,38 @@ function draw(){
  if(shakeT>0){const mag=shakeT*30;shakeX=(Math.random()-.5)*mag;shakeY=(Math.random()-.5)*mag}
  g.save();g.translate(shakeX,shakeY);
  const x0=Math.floor(camX),y0=Math.floor(camY),x1=Math.ceil(camX+VW/S),y1=Math.ceil(camY+VH/S);
+
+ // Arka plan katmanı (bg — ağaçlar, koyu)
  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
   if(!inBounds(x,y))continue;
   const b=bg[y*W+x];
-  if(b){const qx=Math.floor((x-camX)*S),qy=Math.floor((y-camY)*S);
-   drawTile(b,qx,qy,x,y);g.fillStyle='rgba(15,20,35,.55)';g.fillRect(qx,qy,S+1,S+1)}
+  if(b){
+   const qx=Math.floor((x-camX)*S),qy=Math.floor((y-camY)*S);
+   drawTile(b,qx,qy,x,y);
+   g.fillStyle='rgba(15,20,35,.55)';
+   g.fillRect(qx,qy,S+1,S+1);
+  }
  }
+
+ // Ön plan katmanı (w — bloklar)
  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
-  const b=get(x,y);if(b&&inBounds(x,y))drawTile(b,Math.floor((x-camX)*S),Math.floor((y-camY)*S),x,y);
+  const b=get(x,y);
+  if(b&&inBounds(x,y))drawTile(b,Math.floor((x-camX)*S),Math.floor((y-camY)*S),x,y);
  }
+
+ // FX (mob, mermi, drop, hedef)
  drawFx(now/1000,now);
+
+ // Oyuncu
  const X=(px-camX)*S,Y=(py-camY)*S,hurt=hurtT>0;
  g.fillStyle='rgba(0,0,0,.3)';
  g.beginPath();g.ellipse(X+pw*S/2,Y+ph*S,S*.4,S*.1,0,0,6.283);g.fill();
  g.save();g.translate(X+pw*S/2,Y);g.scale(face,1);
  const walk=Math.sin(anim)*.12*S;
- g.fillStyle='#2b2b7c';g.fillRect(-.22*S+walk,1.2*S,.2*S,.6*S);g.fillRect(.02*S-walk,1.2*S,.2*S,.6*S);
- g.fillStyle='#1a1a5c';g.fillRect(-.22*S+walk,1.7*S,.22*S,.1*S);g.fillRect(.02*S-walk,1.7*S,.22*S,.1*S);
+ g.fillStyle='#2b2b7c';
+ g.fillRect(-.22*S+walk,1.2*S,.2*S,.6*S);g.fillRect(.02*S-walk,1.2*S,.2*S,.6*S);
+ g.fillStyle='#1a1a5c';
+ g.fillRect(-.22*S+walk,1.7*S,.22*S,.1*S);g.fillRect(.02*S-walk,1.7*S,.22*S,.1*S);
  g.fillStyle=hurt?'#ff6666':'#2aa0a8';g.fillRect(-.25*S,.6*S,.5*S,.62*S);
  g.fillStyle=hurt?'#cc4444':'#1a8088';g.fillRect(-.25*S,.9*S,.5*S,.32*S);
  g.fillStyle=hurt?'#ff8888':'#1a8088';g.fillRect(-.15*S,.6*S,.3*S,.08*S);
@@ -286,48 +301,78 @@ function draw(){
  g.fillStyle='rgba(255,255,255,.8)';g.fillRect(.11*S,.27*S,.03*S,.03*S);g.fillRect(-.14*S,.27*S,.03*S,.03*S);
  g.fillStyle='#8a4a2a';g.fillRect(-.05*S,.46*S,.1*S,.03*S);
  g.restore();
+
+ // ==================== KARANLIK (skyExposed + meşale) ====================
  const dark=Math.max(0,.55-day*.9);
- if(dark>0){
-  const vis=[];
-  for(const L of lights)if(L[0]>=x0-6&&L[0]<=x1+6&&L[1]>=y0-6&&L[1]<=y1+6)vis.push(L);
-  if(vis.length>0){
-   dg.clearRect(0,0,VW,VH);
-   dg.fillStyle='rgba(10,15,35,'+dark*.92+')';dg.fillRect(0,0,VW,VH);
-   dg.globalCompositeOperation='destination-out';
-   for(const L of vis){
-    const tx=(L[0]+.5-camX)*S,ty=(L[1]+.5-camY)*S,R=L[2]==19?S*4:S*5;
-    dg.drawImage(getLightTex(R,false),tx-R,ty-R);
-   }
-   dg.globalCompositeOperation='source-over';
-   g.drawImage(dc,0,0,VW,VH);
-   g.globalCompositeOperation='lighter';g.globalAlpha=.25;
-   for(const L of vis){
-    const tx=(L[0]+.5-camX)*S,ty=(L[1]+.5-camY)*S,R=L[2]==19?S*3:S*3.5;
-    g.drawImage(getLightTex(R,true),tx-R,ty-R);
-   }
-   g.globalAlpha=1;g.globalCompositeOperation='source-over';
-  }else{g.fillStyle='rgba(10,15,35,'+dark*.92+')';g.fillRect(0,0,VW,VH)}
+ const vis=[];
+ for(const L of lights)if(L[0]>=x0-6&&L[0]<=x1+6&&L[1]>=y0-6&&L[1]<=y1+6)vis.push(L);
+ let needDark=dark>0;
+ if(!needDark){
+  for(let y=y0;y<=y1&&!needDark;y++)for(let x=x0;x<=x1;x++){
+   if(!inBounds(x,y))continue;
+   if(skyExposed[y*W+x]===0){needDark=true;break}
+  }
  }
- if(hurtT>0.2){g.fillStyle='rgba(255,200,200,'+(hurtT-0.2)*3*.4+')';g.fillRect(0,0,VW,VH)}
+ if(needDark){
+  dg.clearRect(0,0,VW,VH);
+  if(dark>0){dg.fillStyle='rgba(10,15,35,'+dark*.92+')';dg.fillRect(0,0,VW,VH)}
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+   if(!inBounds(x,y))continue;
+   if(skyExposed[y*W+x]===0){
+    const qx=Math.floor((x-camX)*S),qy=Math.floor((y-camY)*S);
+    dg.fillStyle='rgba(3,5,15,0.93)';
+    dg.fillRect(qx,qy,S+1,S+1);
+   }
+  }
+  dg.globalCompositeOperation='destination-out';
+  for(const L of vis){
+   const tx=(L[0]+.5-camX)*S,ty=(L[1]+.5-camY)*S,R=L[2]==19?S*4:S*5;
+   dg.drawImage(getLightTex(R,false),tx-R,ty-R);
+  }
+  dg.globalCompositeOperation='source-over';
+  g.drawImage(dc,0,0,VW,VH);
+  g.globalCompositeOperation='lighter';g.globalAlpha=.25;
+  for(const L of vis){
+   const tx=(L[0]+.5-camX)*S,ty=(L[1]+.5-camY)*S,R=L[2]==19?S*3:S*3.5;
+   g.drawImage(getLightTex(R,true),tx-R,ty-R);
+  }
+  g.globalAlpha=1;g.globalCompositeOperation='source-over';
+ }
+
+ // Vuruş flash (beyaz)
+ if(hurtT>0.2){
+  g.fillStyle='rgba(255,200,200,'+(hurtT-0.2)*3*.4+')';
+  g.fillRect(0,0,VW,VH);
+ }
+
+ // Regen aura (yeşil)
  if(regenTimer<=0&&playerHp<playerMaxHp){
   const grd=g.createRadialGradient(VW/2,VH/2,VH*0.35,VW/2,VH/2,VH*0.75);
   grd.addColorStop(0,'rgba(80,200,100,0)');grd.addColorStop(1,'rgba(80,200,100,.1)');
   g.fillStyle=grd;g.fillRect(0,0,VW,VH);
  }
+
+ // Hasar vinyeti (kırmızı)
  if(hurtT>0||playerHp<=6){
   const intensity=Math.max(hurtT*2,playerHp<=6?(1-playerHp/6)*0.45:0);
   const grd=g.createRadialGradient(VW/2,VH/2,VH*0.3,VW/2,VH/2,VH*0.7);
   grd.addColorStop(0,'rgba(200,0,0,0)');grd.addColorStop(1,'rgba(200,0,0,'+intensity+')');
   g.fillStyle=grd;g.fillRect(0,0,VW,VH);
  }
+
+ // Floating text
  g.font='bold 14px system-ui';g.textAlign='center';g.lineWidth=3;g.strokeStyle='#000';
  for(const f of fl){
   const fx=(f.x-camX)*S,fy=(f.y-camY)*S;
-  g.fillStyle='rgba(255,255,255,'+Math.min(1,f.t*2)+')';g.strokeText(f.s,fx,fy);g.fillText(f.s,fx,fy);
+  g.fillStyle='rgba(255,255,255,'+Math.min(1,f.t*2)+')';
+  g.strokeText(f.s,fx,fy);g.fillText(f.s,fx,fy);
  }
+
+ // Mining HUD
  if(mine&&mine.p>0){
   const b=mine.layer=='bg'?getBg(mine.tx,mine.ty):get(mine.tx,mine.ty);
   if(b){mh.style.display='block';mn.textContent=NAME[b]||'';mfill.style.width=(mine.p*100)+'%'}else mh.style.display='none';
  }else mh.style.display='none';
+
  g.restore();
 }
