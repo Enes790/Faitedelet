@@ -5,7 +5,7 @@ const cv=document.getElementById('c'),g=cv.getContext('2d');
 const dc=document.createElement('canvas'),dg=dc.getContext('2d');
 
 // ---------- Sabitler ----------
-const W=200,H=64,pw=.7,ph=1.8,REACH=4.5,RD2=42;
+const W=650,H=90,pw=.7,ph=1.8,REACH=4.5,RD2=42;
 const BASE={1:'#7a5230',2:'#7a5230',3:'#7f7f7f',4:'#6b4a24',5:'#2f7d2a',6:'#e0d08a',7:'#b8864b',8:'#7f7f7f',14:'#ff8c00',15:'#7f7f7f',19:'#4a4a4a',22:'#5a7a3a',23:'#3a2a1a'};
 const SPK={1:'#5e3f22',2:'#5e3f22',3:'#6a6a6a',5:'#245f20',6:'#c9b870',8:'#6a6a6a',15:'#d4a373'};
 const NONSOLID=new Set([14]);
