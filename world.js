@@ -16,25 +16,113 @@ function plantTree(x,h,t){
 
 // ---------- dünya üretimi ----------
 (function gen(){
+ // 1. Yüzey + taş
  for(let x=0;x<W;x++){const h=hgt(x),sandy=h>=29;
   for(let y=h;y<H;y++){const d=y-h;let b;
-   if(sandy&&d<3)b=6;else if(d==0)b=1;else if(d<4)b=2;
-   else{b=3;const r=Math.random();if(d>4&&r<.02)b=8;else if(d>10&&r<.008)b=15}
-   if(y>h+6&&y<H-1){const n=Math.sin(x*.21+seed)*Math.sin(y*.27)+Math.sin(x*.09+y*.13);if(n>1.15)b=0}
+   if(sandy&&d<3)b=6;else if(d==0)b=1;else if(d<4)b=2;else b=3;
    w[y*W+x]=b}}
+
+ // 2. Tüneller (random walk, oda, dallanma)
+ function carveRoom(cx,cy){
+  const r=3+Math.floor(Math.random()*2);
+  for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
+   if(dx*dx+dy*dy>r*r)continue;
+   if(Math.random()<0.15)continue;
+   const tx=cx+dx,ty=cy+dy;
+   if(inBounds(tx,ty)&&w[ty*W+tx]===3)w[ty*W+tx]=0;
+  }
+ }
+ function carveTunnel(sx,sy,length){
+  let x=sx,y=sy,dir=Math.floor(Math.random()*4),width=1,sinceChange=0;
+  for(let step=0;step<length;step++){
+   sinceChange++;
+   // Yumuşak yön değişimi (%20, 180° dönüş yok)
+   if(sinceChange>2&&Math.random()<0.2){
+    const options=[0,1,2,3].filter(d=>{
+     if(dir===0&&d===1)return false;
+     if(dir===1&&d===0)return false;
+     if(dir===2&&d===3)return false;
+     if(dir===3&&d===2)return false;
+     return true;
+    });
+    dir=options[Math.floor(Math.random()*options.length)];
+    sinceChange=0;
+   }
+   // Değişken genişlik (%10)
+   if(Math.random()<0.1)width=1+Math.floor(Math.random()*2);
+   // Hareket
+   if(dir===0)x++;else if(dir===1)x--;else if(dir===2)y++;else y--;
+   // Sınır kontrol
+   if(x<3||x>W-4||y<6||y>H-3)break;
+   const surf=hgt(x);
+   if(y<surf+3)break;
+   // Yuvarlak tünel kaz
+   for(let dy=-width;dy<=width;dy++)for(let dx=-width;dx<=width;dx++){
+    if(dx*dx+dy*dy<=width*width){
+     const tx=x+dx,ty=y+dy;
+     if(inBounds(tx,ty)&&w[ty*W+tx]===3)w[ty*W+tx]=0;
+    }
+   }
+   // Pürüzlü kenar (%30)
+   if(Math.random()<0.3){
+    const d=Math.floor(Math.random()*4);
+    let px=x,py=y;
+    if(d===0)py--;else if(d===1)py++;else if(d===2)px--;else px++;
+    if(inBounds(px,py)&&w[py*W+px]===3)w[py*W+px]=0;
+   }
+   // Oda ihtimali (%3 her adım)
+   if(Math.random()<0.03)carveRoom(x,y);
+   // Dallanma (%5)
+   if(Math.random()<0.05){
+    let bx=x,by=y,bdir=Math.floor(Math.random()*4);
+    for(let bstep=0;bstep<15+Math.floor(Math.random()*15);bstep++){
+     if(bdir===0)bx++;else if(bdir===1)bx--;else if(bdir===2)by++;else by--;
+     if(bx<3||bx>W-4||by<6||by>H-3)break;
+     const bsurf=hgt(bx);
+     if(by<bsurf+3)break;
+     for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      if(dx*dx+dy*dy<=1){
+       const tx=bx+dx,ty=by+dy;
+       if(inBounds(tx,ty)&&w[ty*W+tx]===3)w[ty*W+tx]=0;
+      }
+     }
+    }
+   }
+  }
+ }
+ const tunnelCount=Math.floor(W/28);
+ for(let i=0;i<tunnelCount;i++){
+  const sx=5+Math.floor(Math.random()*(W-10));
+  const surf=hgt(sx);
+  const sy=surf+5+Math.floor(Math.random()*(H-surf-10));
+  if(sy>=H-3)continue;
+  carveTunnel(sx,sy,30+Math.floor(Math.random()*30));
+ }
+
+ // 3. Ağaçlar (tünelden sonra, sadece sağlam çimene)
  for(let x=3;x<W-3;x+=4+Math.floor(Math.random()*5)){const h=hgt(x);if(w[h*W+x]!=1)continue;
   plantTree(x,h,3+Math.floor(Math.random()*2))}
+
+ // 4. Cevher damarları (komşu kontrolü — havada cevher yok)
  function vein(x,y,type,size){let cx=x,cy=y;
   for(let i=0;i<size;i++){
-   if(inBounds(cx,cy)&&w[cy*W+cx]==3)w[cy*W+cx]=type;
+   if(inBounds(cx,cy)&&w[cy*W+cx]==3){
+    let stoneN=0;
+    if(cx+1<W&&w[cy*W+cx+1]===3)stoneN++;
+    if(cx-1>=0&&w[cy*W+cx-1]===3)stoneN++;
+    if(cy+1<H&&w[(cy+1)*W+cx]===3)stoneN++;
+    if(cy-1>=0&&w[(cy-1)*W+cx]===3)stoneN++;
+    if(stoneN>=2)w[cy*W+cx]=type;
+   }
    const d=Math.floor(Math.random()*4);
-   if(d==0)cx++;else if(d==1)cx--;else if(d==2)cy++;else cy--}}
+   if(d==0)cx++;else if(d==1)cx--;else if(d==2)cy++;else cy--;
+  }}
  function scatter(type,n,minD,sMin,sMax){
   for(let i=0;i<n;i++){const x=Math.floor(Math.random()*W),surf=hgt(x);
    const y=surf+minD+Math.floor(Math.random()*Math.max(1,H-1-surf-minD));
    vein(x,y,type,sMin+Math.floor(Math.random()*(sMax-sMin+1)))}}
  scatter(8,240,3,4,8);
- scatter(15,180,8,1,6);
+ scatter(15,180,8,2,6);
 })();
 
 function scanLights(){lights=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const b=w[y*W+x];if(b==14||b==19)lights.push([x,y,b])}}
