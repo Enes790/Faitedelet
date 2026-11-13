@@ -128,6 +128,24 @@ function plantTree(x,h,t){
 function scanLights(){lights=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const b=w[y*W+x];if(b==14||b==19)lights.push([x,y,b])}}
 scanLights();
 
+function computeSkyExposure(){
+ for(let x=0;x<W;x++){
+  let exposed=1;
+  for(let y=0;y<H;y++){
+   if(w[y*W+x]!==0)exposed=0;
+   skyExposed[y*W+x]=exposed;
+  }
+ }
+}
+function updateSkyColumn(x){
+ let exposed=1;
+ for(let y=0;y<H;y++){
+  if(w[y*W+x]!==0)exposed=0;
+  skyExposed[y*W+x]=exposed;
+ }
+}
+computeSkyExposure();
+
 // ---------- ışık cache ----------
 const lightCache={};
 function getLightTex(R,glow){
