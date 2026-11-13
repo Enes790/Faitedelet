@@ -56,8 +56,9 @@ function placeAt(tx,ty){
  const dx=tx+.5-(px+pw/2),dy=ty+.5-(py+ph/2);if(dx*dx+dy*dy>RD2)return false;
  if(!NONSOLID.has(s.id)&&overlapsPl(tx,ty))return false;
  w[ty*W+tx]=s.id;
- if(s.id==14||s.id==19)lights.push([tx,ty,s.id]);
- s.n--;if(!s.n)slots[sel]=null;
+if(s.id==14||s.id==19)lights.push([tx,ty,s.id]);
+updateSkyColumn(tx);
+s.n--;if(!s.n)slots[sel]=null;
  pops.push({x:tx,y:ty,t:.2,c:'#9f9'});refresh();return true}
 function fertTarget(){
  const h=AIM.hit;if(!h||AIM.hitLayer!='w'||get(h[0],h[1])!=1)return null;
