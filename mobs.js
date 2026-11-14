@@ -61,10 +61,25 @@ return
 function updateMobs(dt){
  const isDay=todDay>0.5,cx=px+pw/2,cy=py+ph/2;
  for(const m of mobs){
-  if(m.dead)continue;
-  m.hurt=Math.max(0,m.hurt-dt);m.atkCd=Math.max(0,m.atkCd-dt);m.shootCd=Math.max(0,m.shootCd-dt);
-  const mx=m.x+pw/2,my=m.y+ph/2,dx=cx-mx,dy=cy-my,dist=Math.hypot(dx,dy);
-  if(m.type=='s'){
+if(m.dead)continue;
+m.hurt=Math.max(0,m.hurt-dt);m.atkCd=Math.max(0,m.atkCd-dt);m.shootCd=Math.max(0,m.shootCd-dt);
+const mx=m.x+pw/2,my=m.y+ph/2,dx=cx-mx,dy=cy-my,dist=Math.hypot(dx,dy);
+if(m.type=='c'){
+ m.wanderCd=Math.max(0,(m.wanderCd||0)-dt);
+ m.panicCd=Math.max(0,(m.panicCd||0)-dt);
+ if(dist<4){
+  m.panicCd=1.5;m.face=dx>0?-1:1;m.vx=m.face*3.5;
+  if(m.onGround&&Math.random()<0.08)m.vy=-9;
+ }else if(m.panicCd>0){
+  m.vx=m.face*3.5;
+ }else if(m.wanderCd<=0){
+  m.wanderCd=2+Math.random()*2;m.wanderDir=(Math.random()-.5)*2;
+  m.face=m.wanderDir>0?1:-1;
+  m.vx=Math.random()<0.4?0:m.face*1.5;
+ }else{
+  m.vx=m.wanderDir>0?1.5:-1.5;
+ }
+}else if(m.type=='s'){
    m.face=dx>0?1:-1;
    let sp=0;
    if(dist<22){if(dist>8)sp=m.face;else if(dist<3.5)sp=-m.face}
