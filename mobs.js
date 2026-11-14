@@ -4,7 +4,7 @@
 function burst(x,y,n,c,sp){for(let i=0;i<n;i++)parts.push({x,y,vx:(Math.random()-.5)*sp,vy:-Math.random()*sp*.7,l:.4+Math.random()*.4,c,s:.08+Math.random()*.1})}
 
 // ==================== ORTAK MOB ====================
-const newMob=(type,x,y)=>({id:mobIdCounter++,type,x,y,vx:0,vy:0,hp:type=='s'?8:10,maxHp:type=='s'?8:10,face:1,hurt:0,burn:0,onGround:false,atkCd:0,shootCd:1.5,aimT:0,dead:false});
+const newMob=(type,x,y)=>({id:mobIdCounter++,type,x,y,vx:0,vy:0,hp:type=='c'?4:type=='s'?8:10,maxHp:type=='c'?4:type=='s'?8:10,face:1,hurt:0,burn:0,onGround:false,atkCd:0,shootCd:1.5,aimT:0,dead:false,wanderCd:0,wanderDir:0,panicCd:0});
 
 function moveMob(m,dt){
  m.vy=Math.min(20,m.vy+30*dt);
