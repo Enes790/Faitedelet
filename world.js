@@ -1,10 +1,11 @@
-// world.js — Dünya erişimi, üretim, blok dokuları, çatlaklar, ışık cache
+// world.js — Dünya erişimi, üretim, blok dokuları, çatlaklar, ışık cache, sky exposure
 
-// ---------- dünya erişim ----------
+// ==================== DÜNYA ERİŞİM ====================
 function get(x,y){if(x<0||x>=W||y>=H)return 3;if(y<0)return 0;return w[y*W+x]}
 function getBg(x,y){if(x<0||x>=W||y<0||y>=H)return 0;return bg[y*W+x]}
 function solid(x,y){const b=get(x,y);return b!==0&&!NONSOLID.has(b)}
 
+// ==================== AĞAÇ DİKME ====================
 function plantTree(x,h,t){
  if(h-t-2<0||x<2||x>W-3)return false;
  for(let i=1;i<=t;i++)if(w[(h-i)*W+x]||bg[(h-i)*W+x])return false;
@@ -14,7 +15,7 @@ function plantTree(x,h,t){
  const ty=h-t-2;if(!w[ty*W+x]&&!bg[ty*W+x])bg[ty*W+x]=5;
  return true}
 
-// ---------- dünya üretimi ----------
+// ==================== DÜNYA ÜRETİMİ ====================
 (function gen(){
  // 1. Yüzey + taş
  for(let x=0;x<W;x++){const h=hgt(x),sandy=h>=29;
@@ -36,7 +37,6 @@ function plantTree(x,h,t){
   let x=sx,y=sy,dir=Math.floor(Math.random()*4),width=1,sinceChange=0;
   for(let step=0;step<length;step++){
    sinceChange++;
-   // Yumuşak yön değişimi (%20, 180° dönüş yok)
    if(sinceChange>2&&Math.random()<0.2){
     const options=[0,1,2,3].filter(d=>{
      if(dir===0&&d===1)return false;
@@ -48,31 +48,24 @@ function plantTree(x,h,t){
     dir=options[Math.floor(Math.random()*options.length)];
     sinceChange=0;
    }
-   // Değişken genişlik (%10)
    if(Math.random()<0.1)width=1+Math.floor(Math.random()*2);
-   // Hareket
    if(dir===0)x++;else if(dir===1)x--;else if(dir===2)y++;else y--;
-   // Sınır kontrol
    if(x<3||x>W-4||y<6||y>H-3)break;
    const surf=hgt(x);
    if(y<surf+3)break;
-   // Yuvarlak tünel kaz
    for(let dy=-width;dy<=width;dy++)for(let dx=-width;dx<=width;dx++){
     if(dx*dx+dy*dy<=width*width){
      const tx=x+dx,ty=y+dy;
      if(inBounds(tx,ty)&&w[ty*W+tx]===3)w[ty*W+tx]=0;
     }
    }
-   // Pürüzlü kenar (%30)
    if(Math.random()<0.3){
     const d=Math.floor(Math.random()*4);
     let px=x,py=y;
     if(d===0)py--;else if(d===1)py++;else if(d===2)px--;else px++;
     if(inBounds(px,py)&&w[py*W+px]===3)w[py*W+px]=0;
    }
-   // Oda ihtimali (%3 her adım)
    if(Math.random()<0.03)carveRoom(x,y);
-   // Dallanma (%5)
    if(Math.random()<0.05){
     let bx=x,by=y,bdir=Math.floor(Math.random()*4);
     for(let bstep=0;bstep<15+Math.floor(Math.random()*15);bstep++){
@@ -99,7 +92,7 @@ function plantTree(x,h,t){
   carveTunnel(sx,sy,30+Math.floor(Math.random()*30));
  }
 
- // 3. Ağaçlar (tünelden sonra, sadece sağlam çimene)
+ // 3. Ağaçlar
  for(let x=3;x<W-3;x+=4+Math.floor(Math.random()*5)){const h=hgt(x);if(w[h*W+x]!=1)continue;
   plantTree(x,h,3+Math.floor(Math.random()*2))}
 
@@ -125,28 +118,30 @@ function plantTree(x,h,t){
  scatter(15,180,8,2,6);
 })();
 
+// ==================== IŞIK KAYNAKLARI ====================
 function scanLights(){lights=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const b=w[y*W+x];if(b==14||b==19)lights.push([x,y,b])}}
 scanLights();
 
+// ==================== SKY EXPOSURE (0-15) ====================
 function computeSkyExposure(){
  for(let x=0;x<W;x++){
-  let exposed=1;
+  let light=15;
   for(let y=0;y<H;y++){
-   skyExposed[y*W+x]=exposed;
-   if(w[y*W+x]!==0)exposed=0;
+   skyExposed[y*W+x]=light;
+   if(w[y*W+x]!==0)light=Math.max(0,light-1);
   }
  }
 }
 function updateSkyColumn(x){
- let exposed=1;
+ let light=15;
  for(let y=0;y<H;y++){
-  skyExposed[y*W+x]=exposed;
-  if(w[y*W+x]!==0)exposed=0;
+  skyExposed[y*W+x]=light;
+  if(w[y*W+x]!==0)light=Math.max(0,light-1);
  }
 }
 computeSkyExposure();
 
-// ---------- ışık cache ----------
+// ==================== IŞIK CACHE ====================
 const lightCache={};
 function getLightTex(R,glow){
  const key=(glow?'g':'d')+R;
@@ -162,7 +157,7 @@ function getLightTex(R,glow){
  return lightCache[key]=c;
 }
 
-// ---------- blok dokusu ----------
+// ==================== BLOK DOKULARI ====================
 function tile(b,x,y,X,Y,g){
  const now=Date.now();
  if(b==14){
@@ -358,7 +353,7 @@ function drawTile(b,x,y,X,Y){
  const v=(((X*73856093)^(Y*19349663))>>>0)%8;
  g.drawImage(tileTex(b,v),x,y,S+1,S+1)}
 
-// ---------- kırma çatlakları ----------
+// ==================== KIRMA ÇATLAKLARI ====================
 const CR=[];(function(){let r=12345;const rnd=()=>(r=(r*1664525+1013904223)>>>0)/4294967296;
  const pts=[[.5,.5]];
  for(let i=0;i<16;i++){const p=pts[Math.floor(rnd()*pts.length)],a=rnd()*6.283,l=.14+rnd()*.14;
