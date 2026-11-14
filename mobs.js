@@ -69,6 +69,7 @@ const sk=mobs.filter(m=>m.type=='s'&&!m.dead).length;
 mobs.push(newMob(Math.random()<.35&&sk<3?'s':'z',mx+.15,spawnY));
 return
 }
+}
 
 function updateMobs(dt){
  const isDay=todDay>0.5,cx=px+pw/2,cy=py+ph/2;
