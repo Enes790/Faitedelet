@@ -1,23 +1,6 @@
 // game.js — Input, kamera, ana döngü
 
 // ==================== INPUT ====================
-// ==================== GEÇİCİ DEBUG ====================
-setInterval(()=>{
- let d=document.getElementById('dbg');
- if(!d){d=document.createElement('div');d.id='dbg';
-  d.style.cssText='position:fixed;top:60px;right:8px;background:rgba(0,0,0,.85);color:#0f0;font:11px monospace;padding:6px 10px;border-radius:6px;z-index:9999;pointer-events:none;white-space:pre;line-height:1.4';
-  document.body.appendChild(d);}
- const cc=mobs.filter(m=>m.type=='c'&&!m.dead).length;
- const zc=mobs.filter(m=>m.type=='z'&&!m.dead).length;
- const sc=mobs.filter(m=>m.type=='s'&&!m.dead).length;
- d.textContent='todDay: '+todDay.toFixed(2)+'\n'
-  +'mobs: '+mobs.length+'\n'
-  +'tavuk: '+cc+'\n'
-  +'zombi: '+zc+'\n'
-  +'iskelet: '+sc+'\n'
-  +'chickT: '+chickenTimer.toFixed(1)+'\n'
-  +'skyExp: '+skyExposed[Math.floor(py/ph)*W+Math.floor(px/pw)];
-},500);
 const bindEnd=(el,fn)=>['pointerup','pointercancel'].forEach(t=>el.addEventListener(t,fn));
 const jb=document.getElementById('jump');
 jb.addEventListener('pointerdown',e=>{e.preventDefault();jb.setPointerCapture(e.pointerId);jumpBtn=true});
@@ -59,18 +42,27 @@ function say(s){if(sayCd>0)return;sayCd=1.2;fl.push({x:px+pw/2,y:py-.3,t:1.3,s})
 
 // ==================== TAVUK SPAWN TIMER ====================
 let chickenTimer=0;
+let chickenNextSpawn=8+Math.random()*7;
 
 // ==================== UPDATE ====================
 function update(dt){
  sayCd=Math.max(0,sayCd-dt);invT=Math.max(0,invT-dt);atkT=Math.max(0,atkT-dt);attackCd=Math.max(0,attackCd-dt);
+
+ // Hareket girdisi
  let mx=0;if(Math.abs(sx)>.25)mx=sx;
  if(keys.KeyA||keys.ArrowLeft)mx=-1;if(keys.KeyD||keys.ArrowRight)mx=1;
  const jmp=jumpBtn||(sy<-.6&&!actHeld)||keys.Space||keys.KeyW||keys.ArrowUp;
  if(mx)face=mx>0?1:-1;
- vx=mx*5;vy=Math.min(20,vy+30*dt);
- if(jmp&&ground){vy=-10.5;ground=false}
+
+ // Su içinde mi?
+ const water=inWater(px,py);
+
+ // Fizik
+ vx=mx*(water?3:5);
+ vy=Math.min(20,vy+30*dt);
+ if(jmp&&ground){vy=water?-7:-10.5;ground=false}
  let o=px;px+=vx*dt;
- if(coll(px,py)){px=o;if(ground&&mx&&!coll(o+(mx>0?.05:-.05),py-1.05))vy=-9}
+ if(coll(px,py)){px=o;if(ground&&mx&&!coll(o+(mx>0?.05:-.05),py-1.05))vy=water?-6:-9}
  px=Math.max(0,Math.min(W-pw,px));
  ground=false;py+=vy*dt;
  if(coll(px,py)){if(vy>0){py=Math.floor(py+ph)-ph-.001;ground=true}else py=Math.floor(py)+1.001;vy=0}
@@ -87,8 +79,9 @@ function update(dt){
  const mt=actHeld?mobTarget():null;
  if(mt&&attackCd<=0)strike(mt);
 
- // Kazma
+ // Kazma + kaktüs hasarı
  mineStep(dt,!!mt);
+ checkCactusDamage();
  updateRegen(dt);
 
  // Blok koyma
@@ -98,16 +91,17 @@ function update(dt){
  tod+=dt/90;
  todDay=(Math.sin(tod)+1)/2;
 
- // Zombi/iskelet spawn (mevcut sistem)
+ // Zombi/iskelet spawn
  spawnTimer+=dt;
  if(spawnTimer>4&&mobs.length<(todDay<0.3?7:3)){spawnTimer=0;spawnMob()}
 
- // Tavuk spawn (ayrı, gündüz)
+ // Tavuk spawn (8-15 saniye aralık, %5)
  chickenTimer+=dt;
- if(todDay>0.5&&chickenTimer>3){
+ if(todDay>0.5&&chickenTimer>chickenNextSpawn){
   chickenTimer=0;
+  chickenNextSpawn=8+Math.random()*7;
   const chickenCount=mobs.filter(m=>m.type=='c'&&!m.dead).length;
-  if(chickenCount<6&&Math.random()<0.5)spawnChicken();
+  if(chickenCount<4&&Math.random()<0.05)spawnChicken();
  }
 
  updateMobs(dt);
@@ -115,7 +109,7 @@ function update(dt){
  hurtT=Math.max(0,hurtT-dt);
  shakeT=Math.max(0,shakeT-dt);
 
- // Panel yenileme (döküm yakını değişince)
+ // Panel yenileme
  panT+=dt;
  if(panT>.4){panT=0;if(pan.style.display=='block'&&nearForge()!==lastNF)renderPan()}
 
