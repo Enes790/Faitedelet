@@ -62,11 +62,55 @@ function drawSkeleton(m,now,hf,t){
  g.fillStyle='#222';g.fillRect(-.14*S,.46*S,.28*S,.05*S);
  g.fillStyle=bone;for(let i=0;i<4;i++)g.fillRect((-.12+i*.07)*S,.46*S,.025*S,.05*S);
 }
+function drawChicken(m,now,hf,t){
+ const walk=Math.sin(t*8)*.04*S;
+ const bob=Math.abs(Math.sin(t*8))*.04*S;
+ const panic=m.panicCd>0;
+ const bodyC=hf?'#ffb0b0':'#d08040';
+ const wingC=hf?'#ffd0d0':'#f0e8d0';
+ const legC='#e8a040';
+ const beakC='#f0c030';
+ const combC='#d03020';
+ g.fillStyle=legC;
+ g.fillRect(-.15*S+walk,1.5*S,.08*S,.35*S);
+ g.fillRect(.07*S-walk,1.5*S,.08*S,.35*S);
+ g.fillStyle=bodyC;
+ g.fillRect(-.25*S,.7*S-bob,.5*S,.85*S);
+ g.fillStyle='rgba(0,0,0,.15)';
+ g.fillRect(-.25*S,1.35*S-bob,.5*S,.2*S);
+ g.fillStyle=wingC;
+ g.fillRect(-.3*S,.85*S-bob,.08*S,.4*S);
+ g.fillRect(.22*S,.85*S-bob,.08*S,.4*S);
+ g.fillStyle=bodyC;
+ g.fillRect(-.32*S,.75*S-bob,.08*S,.25*S);
+ g.fillStyle=bodyC;
+ g.fillRect(-.18*S,.35*S-bob,.36*S,.4*S);
+ g.fillStyle=combC;
+ g.fillRect(-.1*S,.3*S-bob,.05*S,.1*S);
+ g.fillRect(-.02*S,.28*S-bob,.05*S,.12*S);
+ g.fillRect(.06*S,.3*S-bob,.05*S,.1*S);
+ g.fillStyle=beakC;
+ g.fillRect(.18*S,.55*S-bob,.12*S,.08*S);
+ g.fillRect(.18*S,.63*S-bob,.08*S,.05*S);
+ g.fillStyle='#1a1a1a';
+ g.fillRect(.04*S,.48*S-bob,.06*S,.06*S);
+ g.fillStyle='#fff';
+ g.fillRect(.05*S,.49*S-bob,.02*S,.02*S);
+ if(panic){
+  g.fillStyle='#ff3030';
+  g.font='bold '+Math.floor(S*.5)+'px system-ui';
+  g.textAlign='center';
+  g.fillText('!',0,-.1*S-bob);
+  g.textAlign='left';
+ }
+}
 function drawMob(m,now){
  const x=(m.x-camX)*S,y=(m.y-camY)*S,hf=m.hurt>0,t=now/150+m.id;
  g.save();g.translate(x+pw*S/2,y);g.scale(m.face,1);
  g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(0,ph*S,S*.35,S*.08,0,0,6.283);g.fill();
- if(m.type=='s')drawSkeleton(m,now,hf,t);else drawZombie(m,now,hf,t);
+ if(m.type=='s')drawSkeleton(m,now,hf,t);
+else if(m.type=='c')drawChicken(m,now,hf,t);
+else drawZombie(m,now,hf,t);
  g.restore();
  if(m.hp<m.maxHp*0.7){
   const bx=x,by=y-S*.28,bw=pw*S,bh=Math.max(3,S*.09),pct=m.hp/m.maxHp;
