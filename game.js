@@ -1,6 +1,6 @@
-// game.js — Input, kamera, ana döngü (çizim render.js'de)
+// game.js — Input, kamera, ana döngü
 
-// ---------- girdiler ----------
+// ==================== INPUT ====================
 const bindEnd=(el,fn)=>['pointerup','pointercancel'].forEach(t=>el.addEventListener(t,fn));
 const jb=document.getElementById('jump');
 jb.addEventListener('pointerdown',e=>{e.preventDefault();jb.setPointerCapture(e.pointerId);jumpBtn=true});
@@ -30,16 +30,20 @@ addEventListener('keyup',e=>keys[e.code]=0);
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 setTimeout(()=>{document.getElementById('hint').style.opacity=0},9000);
 
-// ---------- resize + kamera ----------
+// ==================== RESIZE + KAMERA ====================
 function resize(){dpr=Math.min(2,devicePixelRatio||1);VW=innerWidth;VH=innerHeight;
  cv.width=VW*dpr;cv.height=VH*dpr;g.setTransform(dpr,0,0,dpr,0,0);
  dc.width=VW*dpr;dc.height=VH*dpr;dg.setTransform(dpr,0,0,dpr,0,0);
  S=Math.max(32,Math.min(64,Math.round(Math.min(VW,VH)/9)));tileCache.clear()}
 addEventListener('resize',resize);resize();
 camX=px-VW/S/2;camY=py-VH/S/2;
+
 function say(s){if(sayCd>0)return;sayCd=1.2;fl.push({x:px+pw/2,y:py-.3,t:1.3,s})}
 
-// ---------- güncelleme ----------
+// ==================== TAVUK SPAWN TIMER ====================
+let chickenTimer=0;
+
+// ==================== UPDATE ====================
 function update(dt){
  sayCd=Math.max(0,sayCd-dt);invT=Math.max(0,invT-dt);atkT=Math.max(0,atkT-dt);attackCd=Math.max(0,attackCd-dt);
  let mx=0;if(Math.abs(sx)>.25)mx=sx;
@@ -55,28 +59,58 @@ function update(dt){
  if(coll(px,py)){if(vy>0){py=Math.floor(py+ph)-ph-.001;ground=true}else py=Math.floor(py)+1.001;vy=0}
  if(py>H+5)respawn();
  if(mx&&ground)anim+=dt*12;else if(!mx)anim=0;
+
+ // Nişan yönü
  if(Math.hypot(sx,sy)>.35){const k=(Math.round(Math.atan2(sy,sx)/(Math.PI/4))+8)%8;aimX=DIRS[k][0];aimY=DIRS[k][1]}
  else if(keys.KeyS||keys.ArrowDown){aimX=0;aimY=1}
  else{aimX=face;aimY=0}
  AIM=aimTargets();
+
+ // Saldırı
  const mt=actHeld?mobTarget():null;
  if(mt&&attackCd<=0)strike(mt);
+
+ // Kazma
  mineStep(dt,!!mt);
  updateRegen(dt);
+
+ // Blok koyma
  if(placeHeld){placeCd-=dt;if(placeCd<=0)placeCd=useItem()?.22:.1}
+
+ // Zaman
  tod+=dt/90;
  todDay=(Math.sin(tod)+1)/2;
+
+ // Zombi/iskelet spawn (mevcut sistem)
  spawnTimer+=dt;
  if(spawnTimer>4&&mobs.length<(todDay<0.3?7:3)){spawnTimer=0;spawnMob()}
- updateMobs(dt);updateArrows(dt);
- hurtT=Math.max(0,hurtT-dt);shakeT=Math.max(0,shakeT-dt);
- panT+=dt;if(panT>.4){panT=0;if(pan.style.display=='block'&&nearForge()!==lastNF)renderPan()}
+
+ // Tavuk spawn (ayrı, gündüz)
+ chickenTimer+=dt;
+ if(todDay>0.5&&chickenTimer>3){
+  chickenTimer=0;
+  const chickenCount=mobs.filter(m=>m.type=='c'&&!m.dead).length;
+  if(chickenCount<6&&Math.random()<0.5)spawnChicken();
+ }
+
+ updateMobs(dt);
+ updateArrows(dt);
+ hurtT=Math.max(0,hurtT-dt);
+ shakeT=Math.max(0,shakeT-dt);
+
+ // Panel yenileme (döküm yakını değişince)
+ panT+=dt;
+ if(panT>.4){panT=0;if(pan.style.display=='block'&&nearForge()!==lastNF)renderPan()}
+
+ // Kamera
  const tw=VW/S,th=VH/S;
- camX+=(px+pw/2-tw/2-camX)*Math.min(1,dt*8);camY+=(py+ph/2-th/2-camY)*Math.min(1,dt*8);
- camX=Math.max(0,Math.min(Math.max(0,W-tw),camX));camY=Math.max(0,Math.min(Math.max(0,H-th),camY));
+ camX+=(px+pw/2-tw/2-camX)*Math.min(1,dt*8);
+ camY+=(py+ph/2-th/2-camY)*Math.min(1,dt*8);
+ camX=Math.max(0,Math.min(Math.max(0,W-tw),camX));
+ camY=Math.max(0,Math.min(Math.max(0,H-th),camY));
 }
 
-// ---------- BAŞLAT ----------
+// ==================== BAŞLAT ====================
 addItem(2,10);addItem(7,12);showName();
 let last=performance.now();
 function loop(n){const dt=Math.min(.05,(n-last)/1000);last=n;update(dt);draw();requestAnimationFrame(loop)}
