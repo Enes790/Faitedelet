@@ -240,30 +240,27 @@ function draw(){
  g.save();g.translate(shakeX,shakeY);
  const x0=Math.floor(camX),y0=Math.floor(camY),x1=Math.ceil(camX+VW/S),y1=Math.ceil(camY+VH/S);
 
- // Arka plan (bg — ağaçlar)
-for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
- if(!inBounds(x,y))continue;
- const skl=skyExposed[y*W+x];
- const lightPct=skl/15;
- const surf=hgt(x);
- const depth=Math.max(0,y-surf);
- const depthDark=Math.min(0.55,depth/130);
- const tileDark=Math.min(0.98,(1-lightPct)*0.90+depthDark);
- if(tileDark>0.02){
-  const qx=Math.floor((x-camX)*S),qy=Math.floor((y-camY)*S);
-  dg.fillStyle='rgba(3,5,15,'+tileDark.toFixed(3)+')';
-  dg.fillRect(qx,qy,S+1,S+1);
+ // ==================== ARKA PLAN (bg — ağaçlar) ====================
+ for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+  if(!inBounds(x,y))continue;
+  const b=bg[y*W+x];
+  if(b){
+   const qx=Math.floor((x-camX)*S),qy=Math.floor((y-camY)*S);
+   drawTile(b,qx,qy,x,y);
+   g.fillStyle='rgba(15,20,35,.55)';g.fillRect(qx,qy,S+1,S+1);
+  }
  }
-}
- // Ön plan (w — bloklar)
+
+ // ==================== ÖN PLAN (w — bloklar) ====================
  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
   const b=get(x,y);
   if(b&&inBounds(x,y))drawTile(b,Math.floor((x-camX)*S),Math.floor((y-camY)*S),x,y);
  }
 
+ // ==================== FX (mob, mermi, drop, hedef) ====================
  drawFx(now/1000,now);
 
- // Oyuncu
+ // ==================== OYUNCU ====================
  const X=(px-camX)*S,Y=(py-camY)*S,hurt=hurtT>0;
  g.fillStyle='rgba(0,0,0,.3)';
  g.beginPath();g.ellipse(X+pw*S/2,Y+ph*S,S*.4,S*.1,0,0,6.283);g.fill();
@@ -304,7 +301,7 @@ for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
  g.fillStyle='#8a4a2a';g.fillRect(-.05*S,.46*S,.1*S,.03*S);
  g.restore();
 
- // ==================== KARANLIK (skyExposed + derinlik + meşale + oyuncu halesi) ====================
+ // ==================== KARANLIK (skyExposed 0-15 + meşale + oyuncu halesi) ====================
  const dark=Math.max(0,.55-day*.9);
  const vis=[];
  for(const L of lights)if(L[0]>=x0-6&&L[0]<=x1+6&&L[1]>=y0-6&&L[1]<=y1+6)vis.push(L);
@@ -312,26 +309,20 @@ for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
  if(!needDark){
   for(let y=y0;y<=y1&&!needDark;y++)for(let x=x0;x<=x1;x++){
    if(!inBounds(x,y))continue;
-   if(skyExposed[y*W+x]===0){needDark=true;break}
-   const surf=hgt(x);
-   if(y-surf>3){needDark=true;break}
+   if(skyExposed[y*W+x]<15){needDark=true;break}
   }
  }
  if(needDark){
   dg.clearRect(0,0,VW,VH);
   if(dark>0){dg.fillStyle='rgba(10,15,35,'+dark*.92+')';dg.fillRect(0,0,VW,VH)}
-  // Her tile için karanlık (derinlik faktörlü)
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
    if(!inBounds(x,y))continue;
+   const skl=skyExposed[y*W+x];
+   const lightPct=skl/15;
    const surf=hgt(x);
    const depth=Math.max(0,y-surf);
-   const depthDark=Math.min(0.75,depth/90);
-   let tileDark;
-   if(skyExposed[y*W+x]===0){
-    tileDark=Math.min(0.98,0.95+depthDark*0.03);
-   }else{
-    tileDark=depthDark;
-   }
+   const depthDark=Math.min(0.55,depth/130);
+   const tileDark=Math.min(0.98,(1-lightPct)*0.90+depthDark);
    if(tileDark>0.02){
     const qx=Math.floor((x-camX)*S),qy=Math.floor((y-camY)*S);
     dg.fillStyle='rgba(3,5,15,'+tileDark.toFixed(3)+')';
@@ -339,48 +330,55 @@ for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
    }
   }
   dg.globalCompositeOperation='destination-out';
-  // Meşale delikleri
   for(const L of vis){
    const tx=(L[0]+.5-camX)*S,ty=(L[1]+.5-camY)*S,R=L[2]==19?S*4:S*5;
    dg.drawImage(getLightTex(R,false),tx-R,ty-R);
   }
-  // Oyuncu halesi (2 blok yarıçap)
   const pcx=(px+pw/2-camX)*S,pcy=(py+ph/2-camY)*S,pR=S*2;
   dg.drawImage(getLightTex(pR,false),pcx-pR,pcy-pR);
   dg.globalCompositeOperation='source-over';
   g.drawImage(dc,0,0,VW,VH);
-  // Sıcak glow
   g.globalCompositeOperation='lighter';g.globalAlpha=.25;
   for(const L of vis){
    const tx=(L[0]+.5-camX)*S,ty=(L[1]+.5-camY)*S,R=L[2]==19?S*3:S*3.5;
    g.drawImage(getLightTex(R,true),tx-R,ty-R);
   }
-  // Oyuncu glow (soluk)
   g.globalAlpha=.12;
   g.drawImage(getLightTex(pR,true),pcx-pR,pcy-pR);
   g.globalAlpha=1;g.globalCompositeOperation='source-over';
  }
 
+ // ==================== VURUŞ FLASH ====================
  if(hurtT>0.2){g.fillStyle='rgba(255,200,200,'+(hurtT-0.2)*3*.4+')';g.fillRect(0,0,VW,VH)}
+
+ // ==================== REGEN AURA ====================
  if(regenTimer<=0&&playerHp<playerMaxHp){
   const grd=g.createRadialGradient(VW/2,VH/2,VH*0.35,VW/2,VH/2,VH*0.75);
   grd.addColorStop(0,'rgba(80,200,100,0)');grd.addColorStop(1,'rgba(80,200,100,.1)');
   g.fillStyle=grd;g.fillRect(0,0,VW,VH);
  }
+
+ // ==================== HASAR VINYETİ ====================
  if(hurtT>0||playerHp<=6){
   const intensity=Math.max(hurtT*2,playerHp<=6?(1-playerHp/6)*0.45:0);
   const grd=g.createRadialGradient(VW/2,VH/2,VH*0.3,VW/2,VH/2,VH*0.7);
   grd.addColorStop(0,'rgba(200,0,0,0)');grd.addColorStop(1,'rgba(200,0,0,'+intensity+')');
   g.fillStyle=grd;g.fillRect(0,0,VW,VH);
  }
+
+ // ==================== FLOATING TEXT ====================
  g.font='bold 14px system-ui';g.textAlign='center';g.lineWidth=3;g.strokeStyle='#000';
  for(const f of fl){
   const fx=(f.x-camX)*S,fy=(f.y-camY)*S;
-  g.fillStyle='rgba(255,255,255,'+Math.min(1,f.t*2)+')';g.strokeText(f.s,fx,fy);g.fillText(f.s,fx,fy);
+  g.fillStyle='rgba(255,255,255,'+Math.min(1,f.t*2)+')';
+  g.strokeText(f.s,fx,fy);g.fillText(f.s,fx,fy);
  }
+
+ // ==================== MINING HUD ====================
  if(mine&&mine.p>0){
   const b=mine.layer=='bg'?getBg(mine.tx,mine.ty):get(mine.tx,mine.ty);
   if(b){mh.style.display='block';mn.textContent=NAME[b]||'';mfill.style.width=(mine.p*100)+'%'}else mh.style.display='none';
  }else mh.style.display='none';
+
  g.restore();
 }
