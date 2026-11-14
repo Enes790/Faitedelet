@@ -1,6 +1,23 @@
 // game.js — Input, kamera, ana döngü
 
 // ==================== INPUT ====================
+// ==================== GEÇİCİ DEBUG ====================
+setInterval(()=>{
+ let d=document.getElementById('dbg');
+ if(!d){d=document.createElement('div');d.id='dbg';
+  d.style.cssText='position:fixed;top:60px;right:8px;background:rgba(0,0,0,.85);color:#0f0;font:11px monospace;padding:6px 10px;border-radius:6px;z-index:9999;pointer-events:none;white-space:pre;line-height:1.4';
+  document.body.appendChild(d);}
+ const cc=mobs.filter(m=>m.type=='c'&&!m.dead).length;
+ const zc=mobs.filter(m=>m.type=='z'&&!m.dead).length;
+ const sc=mobs.filter(m=>m.type=='s'&&!m.dead).length;
+ d.textContent='todDay: '+todDay.toFixed(2)+'\n'
+  +'mobs: '+mobs.length+'\n'
+  +'tavuk: '+cc+'\n'
+  +'zombi: '+zc+'\n'
+  +'iskelet: '+sc+'\n'
+  +'chickT: '+chickenTimer.toFixed(1)+'\n'
+  +'skyExp: '+skyExposed[Math.floor(py/ph)*W+Math.floor(px/pw)];
+},500);
 const bindEnd=(el,fn)=>['pointerup','pointercancel'].forEach(t=>el.addEventListener(t,fn));
 const jb=document.getElementById('jump');
 jb.addEventListener('pointerdown',e=>{e.preventDefault();jb.setPointerCapture(e.pointerId);jumpBtn=true});
