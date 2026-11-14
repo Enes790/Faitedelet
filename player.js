@@ -50,7 +50,7 @@ function collBox(x,y,bw,bh){
 }
 const coll=(x,y)=>collBox(x,y,pw,ph);
 
-// Su içinde mi?
+// Su içinde mi? (Yüzme fiziği game.js içinde)
 function inWater(x,y){
  const x0=Math.floor(x),x1=Math.floor(x+pw-.001);
  const y0=Math.floor(y),y1=Math.floor(y+ph-.001);
@@ -75,7 +75,8 @@ function checkCactusDamage(){
  const y0=Math.floor(py),y1=Math.floor(py+ph-.001);
  for(let i=x0;i<=x1;i++)for(let j=y0;j<=y1;j++){
   if(get(i,j)===31){
-   damagePlayer(1,(px+pw/2)-1);
+   // Kaktüs içindeyse hasar ver (1 hasar = yarım kalp)
+   damagePlayer(1,px+(px>i?1:-1));
    return;
   }
  }
@@ -90,25 +91,26 @@ function breakB(tx,ty,layer){
 
  if(b==14||b==19)lights=lights.filter(L=>!(L[0]==tx&&L[1]==ty));
 
- // Su kırılmaz
+ // SU KIRILMAZ (Kovayla alınabilir ileride)
  if(b==43){
   updateSkyColumn(tx);
   return;
  }
 
- // Toprak vazo: loot
+ // Toprak Vazo: Loot düşür
  if(b==42){
   burst(tx+.5,ty+.5,14,'#b06040',5);
   pops.push({x:tx,y:ty,t:.28,c:'#b06040'});
   const loot=[];
-  if(Math.random()<0.5)loot.push([8,1+Math.floor(Math.random()*3)]);
-  if(Math.random()<0.25)loot.push([16,1+Math.floor(Math.random()*2)]);
-  if(Math.random()<0.20)loot.push([7,2+Math.floor(Math.random()*3)]);
-  if(Math.random()<0.15)loot.push([9,2+Math.floor(Math.random()*3)]);
-  if(Math.random()<0.15)loot.push([22,1+Math.floor(Math.random()*2)]);
-  if(Math.random()<0.05)loot.push([36,1]);
-  if(Math.random()<0.03)loot.push([21,1]);
-  if(loot.length===0)loot.push([8,1]);
+  if(Math.random()<0.5)loot.push([8,1+Math.floor(Math.random()*3)]); // Kömür
+  if(Math.random()<0.3)loot.push([16,1+Math.floor(Math.random()*2)]); // Demir
+  if(Math.random()<0.2)loot.push([7,2+Math.floor(Math.random()*3)]);  // Kalas
+  if(Math.random()<0.2)loot.push([9,2+Math.floor(Math.random()*3)]);  // Çubuk
+  if(Math.random()<0.15)loot.push([22,1+Math.floor(Math.random()*2)]); // Çürük Et
+  if(Math.random()<0.1)loot.push([36,1]); // Elmas (%10)
+  if(Math.random()<0.05)loot.push([21,1]); // Demir Kılıç (%5)
+  if(loot.length===0)loot.push([8,1]); // Boş çıkmasın
+  
   loot.forEach(([itemId,amount])=>{
    for(let k=0;k<amount;k++){
     drops.push({x:tx+.5+(Math.random()-.5)*.6,y:ty+.5,vy:-3-Math.random()*2,b:itemId,age:0});
@@ -119,7 +121,7 @@ function breakB(tx,ty,layer){
   return;
  }
 
- // Elmas blok: 9 elmas düşsün
+ // Elmas Blok: Kırınca 9 elmas düşür
  if(b==37){
   for(let k=0;k<9;k++){
    drops.push({x:tx+.5+(Math.random()-.5)*.6,y:ty+.5,vy:-3-Math.random()*2,b:36,age:0});
@@ -135,7 +137,7 @@ function breakB(tx,ty,layer){
  let d=b;
  if(b==1)d=2;
  else if(b==15)d=16;
- else if(b==35)d=36;
+ else if(b==35)d=36; // Elmas Cevheri -> Elmas
  drops.push({x:tx+.5,y:ty+.5,vy:-3,b:d,age:0});
  burst(tx+.5,ty+.5,14,BASE[b],5);
  pops.push({x:tx,y:ty,t:.28,c:BASE[b]});
@@ -151,13 +153,25 @@ function placeAt(tx,ty){
  const s=slots[sel];
  if(!s||!PLACE.has(s.id))return false;
  if(!inBounds(tx,ty)||get(tx,ty))return false;
+ 
+ // KAKTÜS KONTROLÜ: Sadece kum (6) üzerine dikilebilir
+ if(s.id===31){
+  if(get(tx,ty+1)!==6){
+   say('Kaktüs sadece kuma dikilir!');
+   return false;
+  }
+ }
+
  const dx=tx+.5-(px+pw/2),dy=ty+.5-(py+ph/2);
  if(dx*dx+dy*dy>RD2)return false;
  if(!NONSOLID.has(s.id)&&overlapsPl(tx,ty))return false;
+ 
  w[ty*W+tx]=s.id;
  if(s.id==14||s.id==19)lights.push([tx,ty,s.id]);
  updateSkyColumn(tx);
- s.n--;if(!s.n)slots[sel]=null;
+ 
+ s.n--;
+ if(!s.n)slots[sel]=null;
  pops.push({x:tx,y:ty,t:.2,c:'#9f9'});
  refresh();
  return true;
@@ -265,9 +279,12 @@ function mineStep(dt,busy){
   const b=mine.layer=='bg'?getBg(mine.tx,mine.ty):get(mine.tx,mine.ty);
   const dx=mine.tx+.5-(px+pw/2),dy=mine.ty+.5-(py+ph/2);
   if(b&&mine.ty<H-1&&dx*dx+dy*dy<=RD2){
-   if(needsTool(b)){mine.p=0;say('Taş kazma gerekli')}
-   else if(b==43){mine.p=0;}
-   else{
+   if(needsTool(b)){
+    mine.p=0;
+    say('Taş kazma gerekli');
+   }else if(b==43){
+    mine.p=0; // Su kazılmaz
+   }else{
     on=true;
     mine.p+=dt/mineTime(b);
     chipT-=dt;
