@@ -241,15 +241,20 @@ function draw(){
  const x0=Math.floor(camX),y0=Math.floor(camY),x1=Math.ceil(camX+VW/S),y1=Math.ceil(camY+VH/S);
 
  // Arka plan (bg — ağaçlar)
- for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
-  if(!inBounds(x,y))continue;
-  const b=bg[y*W+x];
-  if(b){
-   const qx=Math.floor((x-camX)*S),qy=Math.floor((y-camY)*S);
-   drawTile(b,qx,qy,x,y);
-   g.fillStyle='rgba(15,20,35,.55)';g.fillRect(qx,qy,S+1,S+1);
-  }
+for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+ if(!inBounds(x,y))continue;
+ const skl=skyExposed[y*W+x];
+ const lightPct=skl/15;
+ const surf=hgt(x);
+ const depth=Math.max(0,y-surf);
+ const depthDark=Math.min(0.55,depth/130);
+ const tileDark=Math.min(0.98,(1-lightPct)*0.90+depthDark);
+ if(tileDark>0.02){
+  const qx=Math.floor((x-camX)*S),qy=Math.floor((y-camY)*S);
+  dg.fillStyle='rgba(3,5,15,'+tileDark.toFixed(3)+')';
+  dg.fillRect(qx,qy,S+1,S+1);
  }
+}
  // Ön plan (w — bloklar)
  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
   const b=get(x,y);
