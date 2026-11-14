@@ -21,7 +21,8 @@ function plantTree(x,h,t){
 
 // ==================== DÜNYA ÜRETİMİ ====================
 (function gen(){
- // 1. Yüzey + taş
+ // 1. Yüzey + Taş + Deniz Seviyesi (Su)
+ const SEA_LEVEL = 28; // Suyun maksimum yüksekliği
  for(let x=0;x<W;x++){
   const h=hgt(x),sandy=h>=29;
   for(let y=h;y<H;y++){
@@ -30,11 +31,22 @@ function plantTree(x,h,t){
    else if(d==0)b=1;
    else if(d<4)b=2;
    else b=3;
+   
+   // Eğer zemin deniz seviyesinin altındaysa, yüzeyi kuma çevir
+   if(h > SEA_LEVEL && d === 0) b = 6; 
+   
    w[y*W+x]=b;
+  }
+  
+  // Deniz seviyesine kadar olan boşlukları suyla doldur (Havada su kalmaz)
+  if (h > SEA_LEVEL) {
+   for (let y = SEA_LEVEL; y < h; y++) {
+    w[y*W+x] = 43; // 43 = Su
+   }
   }
  }
 
- // 2. Tüneller (random walk, oda, dallanma)
+ // 2. Tüneller ve Odalar (Daha sık ve büyük)
  function carveRoom(cx,cy){
   const r=3+Math.floor(Math.random()*2);
   for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
@@ -43,7 +55,16 @@ function plantTree(x,h,t){
    const tx=cx+dx,ty=cy+dy;
    if(inBounds(tx,ty)&&w[ty*W+tx]===3)w[ty*W+tx]=0;
   }
+  // YENİ: Odalara %60 ihtimalle Loot Vazosu (42) koy
+  if(Math.random()<0.6){
+   const vx=cx+Math.floor(Math.random()*5)-2; // Odanın içinde rastgele
+   const vy=cy+r-1; // Odanın zeminine yakın
+   if(inBounds(vx,vy) && w[vy*W+vx]===3){
+    w[(vy-1)*W+vx]=42; // Vazoyu zeminin bir üstüne koy
+   }
+  }
  }
+
  function carveTunnel(sx,sy,length){
   let x=sx,y=sy,dir=Math.floor(Math.random()*4),width=1,sinceChange=0;
   for(let step=0;step<length;step++){
@@ -70,13 +91,16 @@ function plantTree(x,h,t){
      if(inBounds(tx,ty)&&w[ty*W+tx]===3)w[ty*W+tx]=0;
     }
    }
+   // Pürüzlü kenar
    if(Math.random()<0.3){
     const d=Math.floor(Math.random()*4);
     let px=x,py=y;
     if(d===0)py--;else if(d===1)py++;else if(d===2)px--;else px++;
     if(inBounds(px,py)&&w[py*W+px]===3)w[py*W+px]=0;
    }
-   if(Math.random()<0.03)carveRoom(x,y);
+   // Oda ihtimali
+   if(Math.random()<0.08)carveRoom(x,y); // Odalar artırıldı (%3 -> %8)
+   // Dallanma
    if(Math.random()<0.05){
     let bx=x,by=y,bdir=Math.floor(Math.random()*4);
     for(let bstep=0;bstep<15+Math.floor(Math.random()*15);bstep++){
@@ -94,20 +118,22 @@ function plantTree(x,h,t){
    }
   }
  }
- const tunnelCount=Math.floor(W/28);
+ 
+ // Tünel sayısı ve uzunluğu artırıldı
+ const tunnelCount=Math.floor(W/16); 
  for(let i=0;i<tunnelCount;i++){
   const sx=5+Math.floor(Math.random()*(W-10));
   const surf=hgt(sx);
   const sy=surf+5+Math.floor(Math.random()*(H-surf-10));
   if(sy>=H-3)continue;
-  carveTunnel(sx,sy,30+Math.floor(Math.random()*30));
+  carveTunnel(sx,sy,50+Math.floor(Math.random()*40));
  }
 
- // 3. Ağaçlar (kulübe alanları hariç)
+ // 3. Ağaçlar (Kulübe alanları hariç)
  for(let x=3;x<W-3;x+=4+Math.floor(Math.random()*5)){
   const h=hgt(x);if(w[h*W+x]!=1)continue;
   let nearForge=false;
-  for(let cx=50;cx<W-50;cx+=80){
+  for(let cx=50;cx<W-50;cx+=100){
    if(Math.abs(x-cx)<4){nearForge=true;break}
   }
   if(nearForge)continue;
@@ -131,7 +157,7 @@ function plantTree(x,h,t){
  function vein(x,y,type,size){
   let cx=x,cy=y;
   for(let i=0;i<size;i++){
-   if(inBounds(cx,cy)&&w[cy*W+cx]==3){
+   if(inBounds(cx,cy)&&w[cy*W+cx]===3){
     let stoneN=0;
     if(cx+1<W&&w[cy*W+cx+1]===3)stoneN++;
     if(cx-1>=0&&w[cy*W+cx-1]===3)stoneN++;
@@ -152,77 +178,58 @@ function plantTree(x,h,t){
  }
  scatter(8,240,3,4,8);       // Kömür
  scatter(15,180,8,2,6);      // Demir
- scatter(35,10,50,1,3);      // Elmas (y50+, çok nadir)
+ scatter(35,15,40,1,3);      // Elmas (Biraz daha kolay bulunsun diye minD 40, damar 15 yapıldı)
 
- // 6. Göller (çukurlarda su)
- for(let i=0;i<8;i++){
-  const cx=30+Math.floor(Math.random()*(W-60));
-  const surf=hgt(cx);
-  const lakeW=4+Math.floor(Math.random()*5);
-  const lakeD=2+Math.floor(Math.random()*2);
-  for(let dx=-lakeW;dx<=lakeW;dx++){
-   for(let dy=0;dy<=lakeD;dy++){
-    const tx=cx+dx,ty=surf+dy;
-    if(inBounds(tx,ty))w[ty*W+tx]=0;
-   }
-  }
-  for(let dx=-lakeW;dx<=lakeW;dx++){
-   const depth=lakeD-Math.floor(Math.abs(dx)*0.4);
-   for(let dy=0;dy<=depth;dy++){
-    const tx=cx+dx,ty=surf+dy;
-    if(inBounds(tx,ty))w[ty*W+tx]=43;
-   }
-  }
-  for(let dx=-lakeW;dx<=lakeW;dx++){
-   const tx=cx+dx,ty=surf+lakeD+1;
-   if(inBounds(tx,ty)&&w[ty*W+tx]===0)w[ty*W+tx]=3;
-  }
- }
-
- // 7. Toprak vazolar (mağara boşluklarında)
- for(let i=0;i<30;i++){
-  const x=5+Math.floor(Math.random()*(W-10));
-  const surf=hgt(x);
-  for(let tries=0;tries<20;tries++){
-   const y=surf+8+Math.floor(Math.random()*(H-surf-12));
-   if(!inBounds(x,y))continue;
-   if(w[y*W+x]!==0)continue;
-   if(!inBounds(x,y+1)||w[(y+1)*W+x]===0)continue;
-   let airN=0;
-   if(x>0&&w[y*W+x-1]===0)airN++;
-   if(x<W-1&&w[y*W+x+1]===0)airN++;
-   if(y>0&&w[(y-1)*W+x]===0)airN++;
-   if(airN>=1){
-    w[y*W+x]=42;
-    break;
-   }
-  }
- }
-
- // 8. Terk edilmiş ocak kulübeleri
+ // 6. Terk edilmiş ocak kulübeleri (Göl ve Engebeli Arazi Çakışma Kontrolü)
  function placeForge(cx){
   const surf=hgt(cx);
+  
+  // Çakışma Kontrolü: Etrafında su (43) var mı?
+  for(let dx=-3;dx<=3;dx++){
+   for(let dy=-1;dy<=2;dy++){
+    const tx = cx+dx;
+    const ty = surf+dy;
+    if(inBounds(tx,ty) && w[ty*W+tx] === 43) return false;
+   }
+  }
+  
+  // Çakışma Kontrolü: Arazi çok engebeli mi? (Yükseklik farkı 1'den fazlaysa)
+  for(let dx=-3;dx<=3;dx++){
+   if(Math.abs(hgt(cx+dx) - surf) > 1) return false;
+  }
+
+  // Alanı temizle
   for(let dx=-3;dx<=3;dx++){
    for(let dy=-1;dy>=-6;dy--){
     const tx=cx+dx,ty=surf+dy;
     if(inBounds(tx,ty))w[ty*W+tx]=0;
    }
   }
+  
+  // Çatı (5 geniş)
   for(let dx=-2;dx<=2;dx++){
    if(inBounds(cx+dx,surf-4))w[(surf-4)*W+(cx+dx)]=3;
   }
+  // Sol duvar (3 sıra)
   if(inBounds(cx-2,surf-3))w[(surf-3)*W+(cx-2)]=3;
   if(inBounds(cx-2,surf-2))w[(surf-2)*W+(cx-2)]=3;
   if(inBounds(cx-2,surf-1))w[(surf-1)*W+(cx-2)]=3;
+  // Sağ duvar (sadece üst = kapı çerçevesi)
   if(inBounds(cx+2,surf-3))w[(surf-3)*W+(cx+2)]=3;
+  // Döküm bloğu (sol iç duvar)
   if(inBounds(cx-1,surf-1))w[(surf-1)*W+(cx-1)]=19;
+  // Meşale (tavanda orta)
   if(inBounds(cx,surf-3))w[(surf-3)*W+cx]=14;
+  // Demir cevheri (sol duvarda %60)
   if(Math.random()<0.6&&inBounds(cx-2,surf-2))w[(surf-2)*W+(cx-2)]=15;
+  
+  return true;
  }
+ 
  let forgeX=50;
  while(forgeX<W-50){
-  placeForge(forgeX);
-  forgeX+=80+Math.floor(Math.random()*40);
+  placeForge(forgeX); // Eğer çakışma varsa false döner ve kulübe inşa edilmez
+  forgeX+=100+Math.floor(Math.random()*50); // Aralık biraz açıldı (100-150 blok)
  }
 })();
 
@@ -529,7 +536,7 @@ function tile(b,x,y,X,Y,g){
    g.fill();
    return;
  }
- // SU (fallback, draw() içinde drawWater var)
+ // SU
  if(b==43){
    g.fillStyle='#1a5a9a';g.fillRect(x,y,S+1,S+1);
    g.fillStyle='#2a7ac0';g.fillRect(x+1,y+1,S-1,S-1);
