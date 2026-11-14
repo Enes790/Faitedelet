@@ -10,18 +10,29 @@ function plantTree(x,h,t){
  if(h-t-2<0||x<2||x>W-3)return false;
  for(let i=1;i<=t;i++)if(w[(h-i)*W+x]||bg[(h-i)*W+x])return false;
  for(let i=1;i<=t;i++)bg[(h-i)*W+x]=4;
- for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=0;dy++){const X=x+dx,Y=h-t+dy;
-  if(inBounds(X,Y)&&!w[Y*W+X]&&!bg[Y*W+X]&&!(Math.abs(dx)==2&&dy==-2))bg[Y*W+X]=5}
- const ty=h-t-2;if(!w[ty*W+x]&&!bg[ty*W+x])bg[ty*W+x]=5;
- return true}
+ for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=0;dy++){
+  const X=x+dx,Y=h-t+dy;
+  if(inBounds(X,Y)&&!w[Y*W+X]&&!bg[Y*W+X]&&!(Math.abs(dx)==2&&dy==-2))bg[Y*W+X]=5;
+ }
+ const ty=h-t-2;
+ if(!w[ty*W+x]&&!bg[ty*W+x])bg[ty*W+x]=5;
+ return true;
+}
 
 // ==================== DÜNYA ÜRETİMİ ====================
 (function gen(){
  // 1. Yüzey + taş
- for(let x=0;x<W;x++){const h=hgt(x),sandy=h>=29;
-  for(let y=h;y<H;y++){const d=y-h;let b;
-   if(sandy&&d<3)b=6;else if(d==0)b=1;else if(d<4)b=2;else b=3;
-   w[y*W+x]=b}}
+ for(let x=0;x<W;x++){
+  const h=hgt(x),sandy=h>=29;
+  for(let y=h;y<H;y++){
+   const d=y-h;let b;
+   if(sandy&&d<3)b=6;
+   else if(d==0)b=1;
+   else if(d<4)b=2;
+   else b=3;
+   w[y*W+x]=b;
+  }
+ }
 
  // 2. Tüneller (random walk, oda, dallanma)
  function carveRoom(cx,cy){
@@ -95,17 +106,30 @@ function plantTree(x,h,t){
  // 3. Ağaçlar (kulübe alanları hariç)
  for(let x=3;x<W-3;x+=4+Math.floor(Math.random()*5)){
   const h=hgt(x);if(w[h*W+x]!=1)continue;
-  // Kulübe yakını mı? (kulübeler aşağıda yerleştirilecek, çakışmasın)
   let nearForge=false;
   for(let cx=50;cx<W-50;cx+=80){
    if(Math.abs(x-cx)<4){nearForge=true;break}
   }
   if(nearForge)continue;
-  plantTree(x,h,3+Math.floor(Math.random()*2))
+  plantTree(x,h,3+Math.floor(Math.random()*2));
  }
 
- // 4. Cevher damarları (komşu kontrolü — havada cevher yok)
- function vein(x,y,type,size){let cx=x,cy=y;
+ // 4. Kaktüsler (kum üzerine)
+ for(let i=0;i<Math.floor(W*0.02);i++){
+  const x=Math.floor(Math.random()*W);
+  const surf=hgt(x);
+  if(w[surf*W+x]!==6)continue;
+  const th=1+Math.floor(Math.random()*3);
+  for(let j=1;j<=th;j++){
+   if(surf-j>=0&&w[(surf-j)*W+x]===0){
+    w[(surf-j)*W+x]=31;
+   }
+  }
+ }
+
+ // 5. Cevher damarları (komşu kontrolü)
+ function vein(x,y,type,size){
+  let cx=x,cy=y;
   for(let i=0;i<size;i++){
    if(inBounds(cx,cy)&&w[cy*W+cx]==3){
     let stoneN=0;
@@ -117,39 +141,82 @@ function plantTree(x,h,t){
    }
    const d=Math.floor(Math.random()*4);
    if(d==0)cx++;else if(d==1)cx--;else if(d==2)cy++;else cy--;
-  }}
+  }
+ }
  function scatter(type,n,minD,sMin,sMax){
-  for(let i=0;i<n;i++){const x=Math.floor(Math.random()*W),surf=hgt(x);
+  for(let i=0;i<n;i++){
+   const x=Math.floor(Math.random()*W),surf=hgt(x);
    const y=surf+minD+Math.floor(Math.random()*Math.max(1,H-1-surf-minD));
-   vein(x,y,type,sMin+Math.floor(Math.random()*(sMax-sMin+1)))}}
- scatter(8,240,3,4,8);
- scatter(15,180,8,2,6);
+   vein(x,y,type,sMin+Math.floor(Math.random()*(sMax-sMin+1)));
+  }
+ }
+ scatter(8,240,3,4,8);       // Kömür
+ scatter(15,180,8,2,6);      // Demir
+ scatter(35,10,50,1,3);      // Elmas (y50+, çok nadir)
 
- // 5. Terk edilmiş ocak kulübeleri
+ // 6. Göller (çukurlarda su)
+ for(let i=0;i<8;i++){
+  const cx=30+Math.floor(Math.random()*(W-60));
+  const surf=hgt(cx);
+  const lakeW=4+Math.floor(Math.random()*5);
+  const lakeD=2+Math.floor(Math.random()*2);
+  for(let dx=-lakeW;dx<=lakeW;dx++){
+   for(let dy=0;dy<=lakeD;dy++){
+    const tx=cx+dx,ty=surf+dy;
+    if(inBounds(tx,ty))w[ty*W+tx]=0;
+   }
+  }
+  for(let dx=-lakeW;dx<=lakeW;dx++){
+   const depth=lakeD-Math.floor(Math.abs(dx)*0.4);
+   for(let dy=0;dy<=depth;dy++){
+    const tx=cx+dx,ty=surf+dy;
+    if(inBounds(tx,ty))w[ty*W+tx]=43;
+   }
+  }
+  for(let dx=-lakeW;dx<=lakeW;dx++){
+   const tx=cx+dx,ty=surf+lakeD+1;
+   if(inBounds(tx,ty)&&w[ty*W+tx]===0)w[ty*W+tx]=3;
+  }
+ }
+
+ // 7. Toprak vazolar (mağara boşluklarında)
+ for(let i=0;i<30;i++){
+  const x=5+Math.floor(Math.random()*(W-10));
+  const surf=hgt(x);
+  for(let tries=0;tries<20;tries++){
+   const y=surf+8+Math.floor(Math.random()*(H-surf-12));
+   if(!inBounds(x,y))continue;
+   if(w[y*W+x]!==0)continue;
+   if(!inBounds(x,y+1)||w[(y+1)*W+x]===0)continue;
+   let airN=0;
+   if(x>0&&w[y*W+x-1]===0)airN++;
+   if(x<W-1&&w[y*W+x+1]===0)airN++;
+   if(y>0&&w[(y-1)*W+x]===0)airN++;
+   if(airN>=1){
+    w[y*W+x]=42;
+    break;
+   }
+  }
+ }
+
+ // 8. Terk edilmiş ocak kulübeleri
  function placeForge(cx){
   const surf=hgt(cx);
-  // Alanı temizle (ağaç/mağara varsa)
   for(let dx=-3;dx<=3;dx++){
    for(let dy=-1;dy>=-6;dy--){
     const tx=cx+dx,ty=surf+dy;
     if(inBounds(tx,ty))w[ty*W+tx]=0;
    }
   }
-  // Çatı (5 geniş)
   for(let dx=-2;dx<=2;dx++){
    if(inBounds(cx+dx,surf-4))w[(surf-4)*W+(cx+dx)]=3;
   }
-  // Sol duvar (3 sıra)
   if(inBounds(cx-2,surf-3))w[(surf-3)*W+(cx-2)]=3;
   if(inBounds(cx-2,surf-2))w[(surf-2)*W+(cx-2)]=3;
   if(inBounds(cx-2,surf-1))w[(surf-1)*W+(cx-2)]=3;
-  // Sağ duvar (sadece üst = kapı çerçevesi)
   if(inBounds(cx+2,surf-3))w[(surf-3)*W+(cx+2)]=3;
-  // Döküm bloğu (sol iç duvar)
   if(inBounds(cx-1,surf-1))w[(surf-1)*W+(cx-1)]=19;
-  // Meşale (tavanda orta)
   if(inBounds(cx,surf-3))w[(surf-3)*W+cx]=14;
-  // Demir cevheri (sol duvarda %60)
   if(Math.random()<0.6&&inBounds(cx-2,surf-2))w[(surf-2)*W+(cx-2)]=15;
  }
  let forgeX=50;
@@ -160,7 +227,13 @@ function plantTree(x,h,t){
 })();
 
 // ==================== IŞIK KAYNAKLARI ====================
-function scanLights(){lights=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const b=w[y*W+x];if(b==14||b==19)lights.push([x,y,b])}}
+function scanLights(){
+ lights=[];
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  const b=w[y*W+x];
+  if(b==14||b==19)lights.push([x,y,b]);
+ }
+}
 scanLights();
 
 // ==================== SKY EXPOSURE (0-15) ====================
@@ -193,7 +266,10 @@ function getLightTex(R,glow){
  const col=glow?'255,200,90':'0,0,0';
  grad.addColorStop(0,'rgba('+col+',1)');
  if(glow)grad.addColorStop(1,'rgba('+col+',0)');
- else{grad.addColorStop(.6,'rgba('+col+',.7)');grad.addColorStop(1,'rgba('+col+',0)')}
+ else{
+  grad.addColorStop(.6,'rgba('+col+',.7)');
+  grad.addColorStop(1,'rgba('+col+',0)');
+ }
  lx.fillStyle=grad;lx.beginPath();lx.arc(R,R,R,0,6.283);lx.fill();
  return lightCache[key]=c;
 }
@@ -201,6 +277,7 @@ function getLightTex(R,glow){
 // ==================== BLOK DOKULARI ====================
 function tile(b,x,y,X,Y,g){
  const now=Date.now();
+ // MEŞALE
  if(b==14){
    const flicker=Math.sin(now/100+X*2.7)*0.5+0.5;
    g.fillStyle='rgba(255,180,60,'+(0.15+flicker*0.15)+')';
@@ -215,6 +292,7 @@ function tile(b,x,y,X,Y,g){
    g.fillStyle='rgba(255,255,200,'+flicker+')';g.fillRect(x+S*.47,y+S*.28,S*.02,S*.02);
    return;
  }
+ // DÖKÜM BLOĞU
  if(b==19){
    const flicker=Math.sin(now/150+X*1.5)*0.5+0.5;
    g.fillStyle='#2a2a2a';g.fillRect(x,y,S+1,S+1);
@@ -232,6 +310,7 @@ function tile(b,x,y,X,Y,g){
    g.fillRect(x+4,y+S-7,3,3);g.fillRect(x+S-7,y+S-7,3,3);
    return;
  }
+ // ÇİMEN
  if(b==1){
    g.fillStyle='#6b4828';g.fillRect(x,y,S+1,S+1);
    for(let n=0;n<6;n++){
@@ -254,6 +333,7 @@ function tile(b,x,y,X,Y,g){
    }
    return;
  }
+ // TOPRAK
  if(b==2){
    g.fillStyle='#6b4828';g.fillRect(x,y,S+1,S+1);
    for(let n=0;n<12;n++){
@@ -271,6 +351,7 @@ function tile(b,x,y,X,Y,g){
    g.fillStyle='rgba(0,0,0,.2)';g.fillRect(x,y+S-1,S+1,1);
    return;
  }
+ // TAŞ
  if(b==3){
    g.fillStyle='#6a6e73';g.fillRect(x,y,S+1,S+1);
    g.fillStyle='#8b8f96';g.fillRect(x+1,y+1,S-1,S-1);
@@ -292,6 +373,7 @@ function tile(b,x,y,X,Y,g){
    g.fillStyle='rgba(255,255,255,.1)';g.fillRect(x,y+S-1,S,1);g.fillRect(x+S-1,y,1,S);
    return;
  }
+ // ODUN
  if(b==4){
    g.fillStyle='#5a3f1a';g.fillRect(x,y,S+1,S+1);
    g.fillStyle='#7d5328';g.fillRect(x+2,y,S-3,S+1);
@@ -310,6 +392,7 @@ function tile(b,x,y,X,Y,g){
    g.fillStyle='rgba(0,0,0,.3)';g.fillRect(x,y+S-1,S,1);
    return;
  }
+ // YAPRAK
  if(b==5){
    g.fillStyle='#1f5a2a';g.fillRect(x,y,S+1,S+1);
    g.fillStyle='#2f7d2a';g.fillRect(x+1,y+1,S-1,S-1);
@@ -327,6 +410,7 @@ function tile(b,x,y,X,Y,g){
    g.fillStyle='rgba(120,255,140,.15)';g.fillRect(x+1,y+1,S-2,2);
    return;
  }
+ // KUM
  if(b==6){
    g.fillStyle='#c9b878';g.fillRect(x,y,S+1,S+1);
    g.fillStyle='#e0d08a';g.fillRect(x+1,y+1,S-1,S-1);
@@ -342,6 +426,7 @@ function tile(b,x,y,X,Y,g){
    }
    return;
  }
+ // KALAS
  if(b==7){
    g.fillStyle='#a07840';g.fillRect(x,y,S+1,S+1);
    const plankH=S/3;
@@ -359,7 +444,8 @@ function tile(b,x,y,X,Y,g){
    g.fillStyle='rgba(80,50,20,.3)';g.fillRect(x+S*.5,y,1,S);
    return;
  }
- if(b==8||b==15){
+ // KÖMÜR/DEMİR/ELMAS CEVHERİ
+ if(b==8||b==15||b==35){
    g.fillStyle='#6a6e73';g.fillRect(x,y,S+1,S+1);
    g.fillStyle='#8b8f96';g.fillRect(x+1,y+1,S-1,S-1);
    for(let n=0;n<5;n++){
@@ -374,44 +460,132 @@ function tile(b,x,y,X,Y,g){
        g.fillStyle='#0a0a0a';g.fillRect(x+ox,y+oy,sz,sz);
        g.fillStyle='#1a1a1a';g.fillRect(x+ox+1,y+oy+1,sz-2,sz-2);
        g.fillStyle='#3a3a3a';g.fillRect(x+ox,y+oy,1,1);
-     }else{
+     }else if(b==15){
        g.fillStyle='#b87333';g.fillRect(x+ox,y+oy,sz,sz);
        g.fillStyle='#d4a373';g.fillRect(x+ox+1,y+oy+1,sz-2,sz-2);
        g.fillStyle='#f0c090';g.fillRect(x+ox,y+oy,1,1);
        g.fillStyle='#8a4a1a';g.fillRect(x+ox+sz-1,y+oy+sz-1,1,1);
+     }else{
+       g.fillStyle='#3ac8d8';g.fillRect(x+ox,y+oy,sz,sz);
+       g.fillStyle='#6ee8f0';g.fillRect(x+ox+1,y+oy+1,sz-2,sz-2);
+       g.fillStyle='#b8f8ff';g.fillRect(x+ox,y+oy,1,1);
+       g.fillStyle='#1a7888';g.fillRect(x+ox+sz-1,y+oy+sz-1,1,1);
      }
    }
    return;
  }
+ // KAKTÜS
+ if(b==31){
+   g.fillStyle='#4a7a2a';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#5a8a3a';g.fillRect(x+2,y,S-3,S+1);
+   g.strokeStyle='#3a5a1a';g.lineWidth=1;
+   g.beginPath();
+   for(let i=4;i<S;i+=4){
+     g.moveTo(x+S*.3,y+i);g.lineTo(x+S*.7,y+i);
+     g.moveTo(x+S*.2,y+i+2);g.lineTo(x+S*.4,y+i+2);
+     g.moveTo(x+S*.6,y+i+2);g.lineTo(x+S*.8,y+i+2);
+   }
+   g.stroke();
+   g.fillStyle='#3a5a1a';g.fillRect(x,y,2,S);
+   g.fillRect(x+S-2,y,2,S);
+   g.fillStyle='#6a9a4a';g.fillRect(x+S*.4,y,3,2);
+   g.fillRect(x+S*.6,y,2,2);
+   return;
+ }
+ // ELMAS BLOK
+ if(b==37){
+   g.fillStyle='#3ac8d8';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#6ee8f0';g.fillRect(x+2,y+2,S-4,S-4);
+   g.fillStyle='#b8f8ff';
+   g.fillRect(x+4,y+4,4,4);g.fillRect(x+S-8,y+4,4,4);
+   g.fillRect(x+4,y+S-8,4,4);g.fillRect(x+S-8,y+S-8,4,4);
+   g.fillStyle='rgba(255,255,255,.4)';
+   g.fillRect(x+2,y+2,S-4,2);
+   g.fillRect(x+2,y+2,2,S-4);
+   return;
+ }
+ // TOPRAK VAZO
+ if(b==42){
+   g.fillStyle='#8a4030';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#b06040';
+   g.beginPath();
+   g.ellipse(x+S*.5,y+S*.5,S*.35,S*.42,0,0,6.283);
+   g.fill();
+   g.fillStyle='#a05030';
+   g.fillRect(x+S*.35,y+S*.15,S*.3,S*.15);
+   g.fillStyle='#8a4030';
+   g.fillRect(x+S*.35,y+S*.15,S*.3,S*.04);
+   g.fillStyle='#a05030';
+   g.fillRect(x+S*.2,y+S*.4,S*.1,S*.15);
+   g.fillRect(x+S*.7,y+S*.4,S*.1,S*.15);
+   g.strokeStyle='#6a3020';g.lineWidth=1;
+   g.beginPath();
+   g.moveTo(x+S*.4,y+S*.3);g.lineTo(x+S*.45,y+S*.5);g.lineTo(x+S*.35,y+S*.7);
+   g.moveTo(x+S*.6,y+S*.35);g.lineTo(x+S*.65,y+S*.55);
+   g.stroke();
+   g.fillStyle='#d08060';
+   g.beginPath();
+   g.ellipse(x+S*.4,y+S*.45,S*.08,S*.12,0,0,6.283);
+   g.fill();
+   return;
+ }
+ // SU (fallback, draw() içinde drawWater var)
+ if(b==43){
+   g.fillStyle='#1a5a9a';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#2a7ac0';g.fillRect(x+1,y+1,S-1,S-1);
+   g.fillStyle='#3a8ad0';g.fillRect(x+2,y+2,S-3,S-3);
+   return;
+ }
+ // FALLBACK
  g.fillStyle=BASE[b]||'#f0f';g.fillRect(x,y,S+1,S+1);
 }
-function tileTex(b,v){const key=b+'_'+v;let c=tileCache.get(key);if(c)return c;
+
+function tileTex(b,v){
+ const key=b+'_'+v;let c=tileCache.get(key);if(c)return c;
  c=document.createElement('canvas');c.width=c.height=Math.ceil((S+1)*dpr);
  const cx=c.getContext('2d');cx.setTransform(dpr,0,0,dpr,0,0);
- tile(b,0,0,v*37+5,v*91+11,cx);tileCache.set(key,c);return c}
+ tile(b,0,0,v*37+5,v*91+11,cx);tileCache.set(key,c);return c;
+}
+
 function drawTile(b,x,y,X,Y){
  if(b==14||b==19){tile(b,x,y,X,Y,g);return}
  const v=(((X*73856093)^(Y*19349663))>>>0)%8;
- g.drawImage(tileTex(b,v),x,y,S+1,S+1)}
+ g.drawImage(tileTex(b,v),x,y,S+1,S+1);
+}
 
 // ==================== KIRMA ÇATLAKLARI ====================
-const CR=[];(function(){let r=12345;const rnd=()=>(r=(r*1664525+1013904223)>>>0)/4294967296;
+const CR=[];
+(function(){
+ let r=12345;
+ const rnd=()=>(r=(r*1664525+1013904223)>>>0)/4294967296;
  const pts=[[.5,.5]];
- for(let i=0;i<16;i++){const p=pts[Math.floor(rnd()*pts.length)],a=rnd()*6.283,l=.14+rnd()*.14;
-  const bx=Math.max(.04,Math.min(.96,p[0]+Math.cos(a)*l)),by=Math.max(.04,Math.min(.96,p[1]+Math.sin(a)*l));
-  CR.push([p[0],p[1],bx,by]);pts.push([bx,by])}})();
+ for(let i=0;i<16;i++){
+  const p=pts[Math.floor(rnd()*pts.length)],a=rnd()*6.283,l=.14+rnd()*.14;
+  const bx=Math.max(.04,Math.min(.96,p[0]+Math.cos(a)*l));
+  const by=Math.max(.04,Math.min(.96,p[1]+Math.sin(a)*l));
+  CR.push([p[0],p[1],bx,by]);
+  pts.push([bx,by]);
+ }
+})();
+
 function drawCrack(x,y,p,X,Y){
  g.fillStyle='rgba(0,0,0,'+(p*.42)+')';g.fillRect(x,y,S,S);
- const n=Math.max(1,Math.ceil(p*CR.length)),h=((X*73856093)^(Y*19349663))>>>0,fx=h&1,fy=(h>>1)&1;
+ const n=Math.max(1,Math.ceil(p*CR.length));
+ const h=((X*73856093)^(Y*19349663))>>>0,fx=h&1,fy=(h>>1)&1;
  g.lineCap='square';
  for(let pass=0;pass<3;pass++){
   if(pass===0){g.strokeStyle='rgba(255,255,255,.3)';g.lineWidth=Math.max(1,S/24)}
   else if(pass===1){g.strokeStyle='rgba(10,10,10,.9)';g.lineWidth=Math.max(2,S/14)}
   else{g.strokeStyle='rgba(80,80,80,.5)';g.lineWidth=Math.max(1,S/22)}
   g.beginPath();
-  for(let i=0;i<n;i++){const s=CR[i];let x1=s[0],y1=s[1],x2=s[2],y2=s[3];
-   if(fx){x1=1-x1;x2=1-x2}if(fy){y1=1-y1;y2=1-y2}
+  for(let i=0;i<n;i++){
+   const s=CR[i];let x1=s[0],y1=s[1],x2=s[2],y2=s[3];
+   if(fx){x1=1-x1;x2=1-x2}
+   if(fy){y1=1-y1;y2=1-y2}
    const o=pass===0?1:0;
-   g.moveTo(x+x1*S+o,y+y1*S+o);g.lineTo(x+x2*S+o,y+y2*S+o)}
-  g.stroke()}
+   g.moveTo(x+x1*S+o,y+y1*S+o);
+   g.lineTo(x+x2*S+o,y+y2*S+o);
+  }
+  g.stroke();
+ }
 }
