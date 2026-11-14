@@ -1,4 +1,4 @@
-// mobs.js — Düşman moblar (zombi, iskelet), savaş, oklar, respawn
+// mobs.js — Mob sistemi (zombi, iskelet, tavuk), savaş, oklar, respawn
 
 // ==================== YARDIMCI ====================
 function burst(x,y,n,c,sp){for(let i=0;i<n;i++)parts.push({x,y,vx:(Math.random()-.5)*sp,vy:-Math.random()*sp*.7,l:.4+Math.random()*.4,c,s:.08+Math.random()*.1})}
@@ -21,7 +21,8 @@ function hitMob(m,damage,knockback){
  m.hp-=damage;m.hurt=0.3;shakeT=0.05;
  const nmx=m.x+((m.x+pw/2>px+pw/2)?1:-1)*knockback;
  if(!coll(nmx,m.y))m.x=nmx;
- if(m.hp<=0)killMob(m);else burst(m.x+pw/2,m.y+ph/2,4,m.type=='s'?'#e6e2d0':'#e74c3c',4);
+ if(m.hp<=0)killMob(m);
+ else burst(m.x+pw/2,m.y+ph/2,4,m.type=='s'?'#e6e2d0':m.type=='c'?'#f0e8d0':'#e74c3c',4);
 }
 
 function killMob(m){
@@ -43,73 +44,109 @@ function killMob(m){
  }
 }
 
-// ==================== DÜŞMAN SPAWN & UPDATE ====================
+// ==================== SPAWN ====================
+function spawnChicken(){
+ const dir=Math.random()<0.5?-1:1;
+ const mx=Math.floor(px+pw/2+dir*(8+Math.random()*15));
+ if(mx<2||mx>W-2)return false;
+ const surf=hgt(mx);
+ for(let y=surf-2;y<surf+2;y++){
+  if(!solid(mx,y)&&!solid(mx,y-1)&&solid(mx,y+1)&&skyExposed[y*W+mx]>10){
+   mobs.push(newMob('c',mx+.15,y));
+   return true;
+  }
+ }
+ return false;
+}
+
 function spawnMob(){
+ // Tavuk: gündüz + yüzey + aydınlık
+ if(todDay>0.5){
+  const chickenCount=mobs.filter(m=>m.type=='c'&&!m.dead).length;
+  if(chickenCount<6&&Math.random()<0.7){
+   if(spawnChicken())return;
+  }
+ }
+ // Zombi/iskelet: karanlık
  const isNight=todDay<0.3;
  for(let tries=0;tries<20;tries++){
   const dir=Math.random()<0.5?-1:1;
   const mx=Math.floor(px+pw/2+dir*(10+Math.random()*10));
   if(mx<2||mx>W-2)continue;
   let spawnY=-1;
-  if(isNight){for(let y=2;y<H-2;y++){if(solid(mx,y)&&!solid(mx,y-1)&&!solid(mx,y-2)){spawnY=y-2;break}}}
-  else{const surf=hgt(mx);for(let y=surf+5;y<H-2;y++){if(!solid(mx,y)&&!solid(mx,y+1)&&solid(mx,y+2)){spawnY=y;break}}}
+  if(isNight){
+   for(let y=2;y<H-2;y++){
+    if(solid(mx,y)&&!solid(mx,y-1)&&!solid(mx,y-2)){spawnY=y-2;break}
+   }
+  }else{
+   const surf=hgt(mx);
+   for(let y=surf+5;y<H-2;y++){
+    if(!solid(mx,y)&&!solid(mx,y+1)&&solid(mx,y+2)){spawnY=y;break}
+   }
+  }
   if(spawnY<0)continue;
   let nearLight=false;
   for(let dy=-3;dy<=3&&!nearLight;dy++)for(let dx=-3;dx<=3;dx++){
    const bx=mx+dx,by=spawnY+dy;
    if(inBounds(bx,by)&&(w[by*W+bx]==14||w[by*W+bx]==19)){nearLight=true;break}}
-if(nearLight)continue;
-const chickenCount=mobs.filter(m=>m.type=='c'&&!m.dead).length;
-if(todDay>0.5&&skyExposed[spawnY*W+mx]>10&&chickenCount<6&&Math.random()<0.5){
- mobs.push(newMob('c',mx+.15,spawnY));
- return;
-}
-if(skyExposed[spawnY*W+mx]>3)continue;
-const sk=mobs.filter(m=>m.type=='s'&&!m.dead).length;
-mobs.push(newMob(Math.random()<.35&&sk<3?'s':'z',mx+.15,spawnY));
-return
-}
+  if(nearLight)continue;
+  if(skyExposed[spawnY*W+mx]>3)continue;
+  const sk=mobs.filter(m=>m.type=='s'&&!m.dead).length;
+  mobs.push(newMob(Math.random()<.35&&sk<3?'s':'z',mx+.15,spawnY));
+  return;
+ }
 }
 
+// ==================== UPDATE ====================
 function updateMobs(dt){
  const isDay=todDay>0.5,cx=px+pw/2,cy=py+ph/2;
  for(const m of mobs){
-if(m.dead)continue;
-m.hurt=Math.max(0,m.hurt-dt);m.atkCd=Math.max(0,m.atkCd-dt);m.shootCd=Math.max(0,m.shootCd-dt);
-const mx=m.x+pw/2,my=m.y+ph/2,dx=cx-mx,dy=cy-my,dist=Math.hypot(dx,dy);
-if(m.type=='c'){
- m.wanderCd=Math.max(0,(m.wanderCd||0)-dt);
- m.panicCd=Math.max(0,(m.panicCd||0)-dt);
- if(dist<4){
-  m.panicCd=1.5;m.face=dx>0?-1:1;m.vx=m.face*3.5;
-  if(m.onGround&&Math.random()<0.08)m.vy=-9;
- }else if(m.panicCd>0){
-  m.vx=m.face*3.5;
- }else if(m.wanderCd<=0){
-  m.wanderCd=2+Math.random()*2;m.wanderDir=(Math.random()-.5)*2;
-  m.face=m.wanderDir>0?1:-1;
-  m.vx=Math.random()<0.4?0:m.face*1.5;
- }else{
-  m.vx=m.wanderDir>0?1.5:-1.5;
- }
-}else if(m.type=='s'){
+  if(m.dead)continue;
+  m.hurt=Math.max(0,m.hurt-dt);m.atkCd=Math.max(0,m.atkCd-dt);m.shootCd=Math.max(0,m.shootCd-dt);
+  const mx=m.x+pw/2,my=m.y+ph/2,dx=cx-mx,dy=cy-my,dist=Math.hypot(dx,dy);
+
+  if(m.type=='c'){
+   m.wanderCd=Math.max(0,(m.wanderCd||0)-dt);
+   m.panicCd=Math.max(0,(m.panicCd||0)-dt);
+   if(dist<4){
+    m.panicCd=1.5;m.face=dx>0?-1:1;m.vx=m.face*3.5;
+    if(m.onGround&&Math.random()<0.08)m.vy=-9;
+   }else if(m.panicCd>0){
+    m.vx=m.face*3.5;
+   }else if(m.wanderCd<=0){
+    m.wanderCd=2+Math.random()*2;m.wanderDir=(Math.random()-.5)*2;
+    m.face=m.wanderDir>0?1:-1;
+    m.vx=Math.random()<0.4?0:m.face*1.5;
+   }else{
+    m.vx=m.wanderDir>0?1.5:-1.5;
+   }
+  }else if(m.type=='s'){
    m.face=dx>0?1:-1;
    let sp=0;
    if(dist<22){if(dist>8)sp=m.face;else if(dist<3.5)sp=-m.face}
    const see=dist<12&&Math.abs(dy)<4.5&&los(mx,my,cx,cy);
-   if(see&&m.shootCd<=0){m.aimT+=dt;sp=0;
-    if(m.aimT>=.6){shootArrow(m,cx,cy);m.shootCd=1.8+Math.random();m.aimT=0}}
+   if(see&&m.shootCd<=0){
+    m.aimT+=dt;sp=0;
+    if(m.aimT>=.6){shootArrow(m,cx,cy);m.shootCd=1.8+Math.random();m.aimT=0}
+   }
    else m.aimT=0;
    m.vx=sp*1.9;
   }else{
    if(dist<20&&dist>0.5){m.face=dx>0?1:-1;m.vx=m.face*2.4}else m.vx=0;
   }
+
   moveMob(m,dt);
+
   const surf=hgt(Math.max(0,Math.min(W-1,Math.floor(m.x))));
-  if(isDay&&m.y<surf+3){m.burn+=dt;
-   if(m.burn>=1){m.burn=0;m.hp-=1;burst(m.x+Math.random()*pw,m.y+Math.random()*ph,3,'#ff8c00',3);
-    if(m.hp<=0){killMob(m);continue}}}
-  else m.burn=0;
+  if(isDay&&m.y<surf+3&&m.type!='c'){
+   m.burn+=dt;
+   if(m.burn>=1){
+    m.burn=0;m.hp-=1;
+    burst(m.x+Math.random()*pw,m.y+Math.random()*ph,3,'#ff8c00',3);
+    if(m.hp<=0){killMob(m);continue}
+   }
+  }else m.burn=0;
+
   if(m.type=='z'&&dist<1.0&&m.atkCd<=0&&damagePlayer(2,mx))m.atkCd=1.0;
   if(m.y>H+5)m.dead=true;
  }
