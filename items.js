@@ -1,9 +1,9 @@
 // items.js — Eşya tanımları, envanter, craft mantığı
 
 // ---------- eşya tanımları ----------
-const NAME={1:'Çimen',2:'Toprak',3:'Taş',4:'Odun',5:'Yaprak',6:'Kum',7:'Kalas',8:'Kömür',9:'Çubuk',10:'Odun kazma',11:'Taş kazma',12:'Tahta balta',13:'Tahta kürek',14:'Meşale',15:'Demir cevheri',16:'Demir',17:'Taş balta',18:'Taş kürek',19:'Döküm Bloğu',20:'Cevher Topu',21:'Demir Kılıç',22:'Çürük Et',23:'Gübre',24:'Cam Topu',25:'Kemik'};
-const IC={...BASE,9:'#8a6a35',10:'#b8864b',11:'#9a9a9a',12:'#c08a4a',13:'#a0a0a0',16:'#c0c0c0',17:'#9a9a9a',18:'#9a9a9a',20:'#a0a0a0',21:'#d0d0d0',24:'#a0e0f0',25:'#e6e2d0'};
-const GL={9:'╱',10:'⛏',11:'⛏',12:'🪓',13:'⚒',14:'🔥',17:'🪓',18:'⚒',19:'⚒',20:'●',21:'🗡',22:'🍖',23:'🌱',24:'❄',25:'🦴'};
+const NAME={1:'Çimen',2:'Toprak',3:'Taş',4:'Odun',5:'Yaprak',6:'Kum',7:'Kalas',8:'Kömür',9:'Çubuk',10:'Odun kazma',11:'Taş kazma',12:'Tahta balta',13:'Tahta kürek',14:'Meşale',15:'Demir cevheri',16:'Demir',17:'Taş balta',18:'Taş kürek',19:'Döküm Bloğu',20:'Cevher Topu',21:'Demir Kılıç',22:'Çürük Et',23:'Gübre',24:'Cam Topu',25:'Kemik',26:'Tüy',27:'Yumurta',28:'Çiğ Tavuk'};
+const IC={...BASE,9:'#8a6a35',10:'#b8864b',11:'#9a9a9a',12:'#c08a4a',13:'#a0a0a0',16:'#c0c0c0',17:'#9a9a9a',18:'#9a9a9a',20:'#a0a0a0',21:'#d0d0d0',24:'#a0e0f0',25:'#e6e2d0',26:'#f0f0f0',27:'#f5f0d0',28:'#e8a080'};
+const GL={9:'╱',10:'⛏',11:'⛏',12:'🪓',13:'⚒',14:'🔥',17:'🪓',18:'⚒',19:'⚒',20:'●',21:'🗡',22:'🍖',23:'🌱',24:'❄',25:'🦴',26:'🪶',27:'🥚',28:'🍗'};
 const REC=[
  [7,4,{4:1},0],[9,4,{7:2},0],[14,4,{8:2,9:1},0],
  [10,1,{7:3,9:2},0],[11,1,{3:3,9:2},0],
