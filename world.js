@@ -92,9 +92,17 @@ function plantTree(x,h,t){
   carveTunnel(sx,sy,30+Math.floor(Math.random()*30));
  }
 
- // 3. Ağaçlar
- for(let x=3;x<W-3;x+=4+Math.floor(Math.random()*5)){const h=hgt(x);if(w[h*W+x]!=1)continue;
-  plantTree(x,h,3+Math.floor(Math.random()*2))}
+ // 3. Ağaçlar (kulübe alanları hariç)
+ for(let x=3;x<W-3;x+=4+Math.floor(Math.random()*5)){
+  const h=hgt(x);if(w[h*W+x]!=1)continue;
+  // Kulübe yakını mı? (kulübeler aşağıda yerleştirilecek, çakışmasın)
+  let nearForge=false;
+  for(let cx=50;cx<W-50;cx+=80){
+   if(Math.abs(x-cx)<4){nearForge=true;break}
+  }
+  if(nearForge)continue;
+  plantTree(x,h,3+Math.floor(Math.random()*2))
+ }
 
  // 4. Cevher damarları (komşu kontrolü — havada cevher yok)
  function vein(x,y,type,size){let cx=x,cy=y;
@@ -116,6 +124,39 @@ function plantTree(x,h,t){
    vein(x,y,type,sMin+Math.floor(Math.random()*(sMax-sMin+1)))}}
  scatter(8,240,3,4,8);
  scatter(15,180,8,2,6);
+
+ // 5. Terk edilmiş ocak kulübeleri
+ function placeForge(cx){
+  const surf=hgt(cx);
+  // Alanı temizle (ağaç/mağara varsa)
+  for(let dx=-3;dx<=3;dx++){
+   for(let dy=-1;dy>=-6;dy--){
+    const tx=cx+dx,ty=surf+dy;
+    if(inBounds(tx,ty))w[ty*W+tx]=0;
+   }
+  }
+  // Çatı (5 geniş)
+  for(let dx=-2;dx<=2;dx++){
+   if(inBounds(cx+dx,surf-4))w[(surf-4)*W+(cx+dx)]=3;
+  }
+  // Sol duvar (3 sıra)
+  if(inBounds(cx-2,surf-3))w[(surf-3)*W+(cx-2)]=3;
+  if(inBounds(cx-2,surf-2))w[(surf-2)*W+(cx-2)]=3;
+  if(inBounds(cx-2,surf-1))w[(surf-1)*W+(cx-2)]=3;
+  // Sağ duvar (sadece üst = kapı çerçevesi)
+  if(inBounds(cx+2,surf-3))w[(surf-3)*W+(cx+2)]=3;
+  // Döküm bloğu (sol iç duvar)
+  if(inBounds(cx-1,surf-1))w[(surf-1)*W+(cx-1)]=19;
+  // Meşale (tavanda orta)
+  if(inBounds(cx,surf-3))w[(surf-3)*W+cx]=14;
+  // Demir cevheri (sol duvarda %60)
+  if(Math.random()<0.6&&inBounds(cx-2,surf-2))w[(surf-2)*W+(cx-2)]=15;
+ }
+ let forgeX=50;
+ while(forgeX<W-50){
+  placeForge(forgeX);
+  forgeX+=80+Math.floor(Math.random()*40);
+ }
 })();
 
 // ==================== IŞIK KAYNAKLARI ====================
