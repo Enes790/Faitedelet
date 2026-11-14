@@ -7,7 +7,8 @@ function burst(x,y,n,c,sp){for(let i=0;i<n;i++)parts.push({x,y,vx:(Math.random()
 const newMob=(type,x,y)=>({id:mobIdCounter++,type,x,y,vx:0,vy:0,hp:type=='c'?4:type=='s'?8:10,maxHp:type=='c'?4:type=='s'?8:10,face:1,hurt:0,burn:0,onGround:false,atkCd:0,shootCd:1.5,aimT:0,dead:false,wanderCd:0,wanderDir:0,panicCd:0});
 
 function moveMob(m,dt){
- m.vy=Math.min(20,m.vy+30*dt);
+ if(m.type=='c'){m.vy=Math.min(4,m.vy+18*dt);}
+ else{m.vy=Math.min(20,m.vy+30*dt);}
  const ox=m.x;m.x+=m.vx*dt;
  if(coll(m.x,m.y)){m.x=ox;if(m.onGround&&m.vx&&!coll(ox+(m.vx>0?.05:-.05),m.y-1.0))m.vy=-9;m.vx=0}
  m.x=Math.max(0,Math.min(W-pw,m.x));
