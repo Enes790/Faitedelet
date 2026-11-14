@@ -27,8 +27,20 @@ function hitMob(m,damage,knockback){
 function killMob(m){
  if(m.dead)return;m.dead=true;
  const cx=m.x+pw/2,cy=m.y+ph/2;
- if(m.type=='s'){drops.push({x:cx,y:cy,vy:-3,b:25,age:0});if(Math.random()<.5)drops.push({x:cx+.2,y:cy,vy:-3.5,b:25,age:0});burst(cx,cy,10,'#e6e2d0',6)}
- else{drops.push({x:cx,y:cy,vy:-3,b:22,age:0});burst(cx,cy,10,'#5a7a3a',6)}
+ if(m.type=='c'){
+  drops.push({x:cx,y:cy,vy:-3,b:26,age:0});
+  if(Math.random()<.5)drops.push({x:cx+.15,y:cy,vy:-3.2,b:26,age:0});
+  if(Math.random()<.3)drops.push({x:cx-.15,y:cy,vy:-3.4,b:27,age:0});
+  drops.push({x:cx+.3,y:cy,vy:-3.6,b:28,age:0});
+  burst(cx,cy,8,'#f0e8d0',5);
+ }else if(m.type=='s'){
+  drops.push({x:cx,y:cy,vy:-3,b:25,age:0});
+  if(Math.random()<.5)drops.push({x:cx+.2,y:cy,vy:-3.5,b:25,age:0});
+  burst(cx,cy,10,'#e6e2d0',6);
+ }else{
+  drops.push({x:cx,y:cy,vy:-3,b:22,age:0});
+  burst(cx,cy,10,'#5a7a3a',6);
+ }
 }
 
 // ==================== DÜŞMAN SPAWN & UPDATE ====================
