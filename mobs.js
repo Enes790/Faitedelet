@@ -46,7 +46,7 @@ function spawnMob(){
    const bx=mx+dx,by=spawnY+dy;
    if(inBounds(bx,by)&&(w[by*W+bx]==14||w[by*W+bx]==19)){nearLight=true;break}}
 if(nearLight)continue;
-if(skyExposed[spawnY*W+mx]===1)continue;
+if(skyExposed[spawnY*W+mx]>3)continue;
 const sk=mobs.filter(m=>m.type=='s'&&!m.dead).length;
   mobs.push(newMob(Math.random()<.35&&sk<3?'s':'z',mx+.15,spawnY));
   return}
