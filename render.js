@@ -7,20 +7,25 @@ function mix(a,b,t){return a.map((v,i)=>Math.round(v+(b[i]-v)*t))}
 function drawWater(x,y,X,Y){
  const now=Date.now();
  const wave=Math.sin(now/500+X*0.5+Y*0.3)*0.5+0.5;
- g.fillStyle='#1a5a9a';g.fillRect(x,y,S+1,S+1);
- g.fillStyle='#2a7ac0';g.fillRect(x+1,y+1,S-1,S-1);
- g.fillStyle='#3a8ad0';g.fillRect(x+2,y+2,S-3,S-3);
- // dalga çizgileri
- g.fillStyle='rgba(120,200,255,.35)';
- g.fillRect(x+2,y+S*.2+wave*3,S*.4,1);
- g.fillRect(x+S*.5,y+S*.5+wave*2,S*.35,1);
- // üst parlama
- g.fillStyle='rgba(180,220,255,.4)';
- g.fillRect(x+1,y+1,S-2,2);
+ // Yarı saydam, cam gibi su tabanı
+ g.fillStyle='rgba(40, 120, 200, 0.6)'; 
+ g.fillRect(x,y,S+1,S+1);
+ // Derinlik hissi için alt kısma doğru daha koyu
+ g.fillStyle='rgba(20, 80, 160, 0.4)';
+ g.fillRect(x,y+S*.5,S+1,S*.5);
+ // Yüzeydeki dalgalanma ve parlama
+ g.fillStyle='rgba(150, 220, 255, 0.3)';
+ g.fillRect(x+2,y+S*.1+wave*2,S*.6,2);
+ g.fillRect(x+S*.4,y+S*.25+wave,S*.4,1.5);
+ // Blok sınırlarını belli eden hafif bir çerçeve (slime görünümünü kırar)
+ g.strokeStyle='rgba(255,255,255,0.1)';
+ g.lineWidth=1;
+ g.strokeRect(x+.5, y+.5, S-1, S-1);
 }
 
 // ==================== MOB ÇİZİM ====================
 function drawZombie(m,now,hf,t){
+ // ... (Zombi çizim kodu aynı kalacak, buraya dokunmuyoruz)
  const walk=Math.sin(t)*.12*S,armSwing=Math.sin(t*1.3)*.15*S;
  g.fillStyle='#2a2a4a';
  g.fillRect(-.22*S+walk,1.15*S,.18*S,.6*S);g.fillRect(.02*S-walk,1.15*S,.18*S,.6*S);
@@ -48,6 +53,7 @@ function drawZombie(m,now,hf,t){
 }
 
 function drawSkeleton(m,now,hf,t){
+ // ... (İskelet çizim kodu aynı kalacak)
  const walk=Math.sin(t)*.1*S,bone=hf?'#ffb0b0':'#e6e2d0',shade=hf?'#d08080':'#b8b4a0';
  g.fillStyle=bone;
  g.fillRect(-.2*S+walk,1.2*S,.11*S,.55*S);g.fillRect(.06*S-walk,1.2*S,.11*S,.55*S);
@@ -80,61 +86,24 @@ function drawSkeleton(m,now,hf,t){
  g.fillStyle=bone;for(let i=0;i<4;i++)g.fillRect((-.12+i*.07)*S,.46*S,.025*S,.05*S);
 }
 
-// ==================== TAVUK ÇİZİM (KÜÇÜLTÜLMÜŞ) ====================
 function drawChicken(m,now,hf,t){
- g.save();
- g.scale(.55,.55);
- g.translate(0,.95*S);
- const walk=Math.sin(t*8)*.04*S;
- const bob=Math.abs(Math.sin(t*8))*.04*S;
- const bodyC=hf?'#ffb0b0':'#d08040';
- const wingC=hf?'#ffd0d0':'#f0e8d0';
- const legC='#e8a040';
- const beakC='#f0c030';
- const combC='#d03020';
- // bacaklar (yürüyüş)
- g.fillStyle=legC;
- g.fillRect(-.15*S+walk,1.5*S,.08*S,.35*S);
- g.fillRect(.07*S-walk,1.5*S,.08*S,.35*S);
- // gövde
- g.fillStyle=bodyC;
- g.fillRect(-.25*S,.7*S-bob,.5*S,.85*S);
- // gövde alt gölge
- g.fillStyle='rgba(0,0,0,.15)';
- g.fillRect(-.25*S,1.35*S-bob,.5*S,.2*S);
- // kanatlar
- g.fillStyle=wingC;
- g.fillRect(-.3*S,.85*S-bob,.08*S,.4*S);
- g.fillRect(.22*S,.85*S-bob,.08*S,.4*S);
- // kuyruk
- g.fillStyle=bodyC;
- g.fillRect(-.32*S,.75*S-bob,.08*S,.25*S);
- // kafa
- g.fillStyle=bodyC;
- g.fillRect(-.18*S,.35*S-bob,.36*S,.4*S);
- // ibik
- g.fillStyle=combC;
- g.fillRect(-.1*S,.3*S-bob,.05*S,.1*S);
- g.fillRect(-.02*S,.28*S-bob,.05*S,.12*S);
- g.fillRect(.06*S,.3*S-bob,.05*S,.1*S);
- // gaga
- g.fillStyle=beakC;
- g.fillRect(.18*S,.55*S-bob,.12*S,.08*S);
- g.fillRect(.18*S,.63*S-bob,.08*S,.05*S);
- // göz
- g.fillStyle='#1a1a1a';
- g.fillRect(.04*S,.48*S-bob,.06*S,.06*S);
- g.fillStyle='#fff';
- g.fillRect(.05*S,.49*S-bob,.02*S,.02*S);
+ // ... (Tavuk çizim kodu aynı kalacak)
+ g.save();g.scale(.55,.55);g.translate(0,.95*S);
+ const walk=Math.sin(t*8)*.04*S,bob=Math.abs(Math.sin(t*8))*.04*S;
+ const bodyC=hf?'#ffb0b0':'#d08040',wingC=hf?'#ffd0d0':'#f0e8d0';
+ const legC='#e8a040',beakC='#f0c030',combC='#d03020';
+ g.fillStyle=legC;g.fillRect(-.15*S+walk,1.5*S,.08*S,.35*S);g.fillRect(.07*S-walk,1.5*S,.08*S,.35*S);
+ g.fillStyle=bodyC;g.fillRect(-.25*S,.7*S-bob,.5*S,.85*S);
+ g.fillStyle='rgba(0,0,0,.15)';g.fillRect(-.25*S,1.35*S-bob,.5*S,.2*S);
+ g.fillStyle=wingC;g.fillRect(-.3*S,.85*S-bob,.08*S,.4*S);g.fillRect(.22*S,.85*S-bob,.08*S,.4*S);
+ g.fillStyle=bodyC;g.fillRect(-.32*S,.75*S-bob,.08*S,.25*S);
+ g.fillStyle=bodyC;g.fillRect(-.18*S,.35*S-bob,.36*S,.4*S);
+ g.fillStyle=combC;g.fillRect(-.1*S,.3*S-bob,.05*S,.1*S);g.fillRect(-.02*S,.28*S-bob,.05*S,.12*S);g.fillRect(.06*S,.3*S-bob,.05*S,.1*S);
+ g.fillStyle=beakC;g.fillRect(.18*S,.55*S-bob,.12*S,.08*S);g.fillRect(.18*S,.63*S-bob,.08*S,.05*S);
+ g.fillStyle='#1a1a1a';g.fillRect(.04*S,.48*S-bob,.06*S,.06*S);
+ g.fillStyle='#fff';g.fillRect(.05*S,.49*S-bob,.02*S,.02*S);
  g.restore();
- // panik işareti (scale dışında, büyük)
- if(m.panicCd>0){
-  g.fillStyle='#ff3030';
-  g.font='bold '+Math.floor(S*.5)+'px system-ui';
-  g.textAlign='center';
-  g.fillText('!',0,-.15*S);
-  g.textAlign='left';
- }
+ if(m.panicCd>0){g.fillStyle='#ff3030';g.font='bold '+Math.floor(S*.5)+'px system-ui';g.textAlign='center';g.fillText('!',0,-.15*S);g.textAlign='left';}
 }
 
 function drawMob(m,now){
@@ -162,10 +131,10 @@ function drawMob(m,now){
  }
 }
 
-// ==================== FX (mermi, drop, hedef) ====================
+// ==================== FX ====================
 function drawFx(t,now){
  for(const m of mobs)if(!m.dead)drawMob(m,now);
- // Oklar
+ // ... (Oklar, Droplar, Toplar, hedef çizgileri aynı kalacak)
  for(const a of arrows){
   const x=(a.x-camX)*S,y=(a.y-camY)*S,ang=Math.atan2(a.vy,a.vx);
   g.save();g.translate(x,y);g.rotate(ang);
@@ -174,7 +143,6 @@ function drawFx(t,now){
   g.fillStyle='#eee';g.fillRect(-S*.3,-3,S*.08,2);g.fillRect(-S*.3,1,S*.08,2);
   g.restore();
  }
- // Droplar
  for(const o of drops){
   const x=(o.x-camX)*S,y=(o.y-camY+Math.sin(t*5+o.x)*.05)*S,z=S*.3;
   g.fillStyle='rgba(0,0,0,.35)';g.fillRect(x-z/2,y+z/2,z,3);
@@ -182,7 +150,6 @@ function drawFx(t,now){
   g.strokeStyle='rgba(0,0,0,.6)';g.lineWidth=1;g.strokeRect(x-z/2,y-z/2,z,z);
   g.fillStyle='rgba(255,255,255,.3)';g.fillRect(x-z/2,y-z/2,z*.3,z*.3);
  }
- // Toplar
  for(const p of projectiles){
   const x=(p.x-camX)*S,y=(p.y-camY)*S;
   if(p.type==24){
@@ -208,7 +175,6 @@ function drawFx(t,now){
    g.strokeStyle='#d0d0d0';g.lineWidth=1.5;g.beginPath();g.arc(x,y,S*.18,0,6.283);g.stroke();
   }
  }
- // Yerleştirme önizlemesi
  const s=slots[sel],a=AIM;
  let pv=null;
  if(s&&s.id==23){const f=fertTarget();if(f)pv=f}
@@ -224,53 +190,43 @@ function drawFx(t,now){
   g.fillRect(x,y+S-2,S*.15,2);g.fillRect(x,y+S-S*.15,2,S*.15);
   g.fillRect(x+S-S*.15,y+S-2,S*.15,2);g.fillRect(x+S-2,y+S-S*.15,2,S*.15);
  }
- // Hedef çerçevesi
  if(a.hit){
   const x=(a.hit[0]-camX)*S,y=(a.hit[1]-camY)*S,pulse=.6+.4*Math.sin(t*8);
   if(a.hitLayer=='bg'){
-   g.strokeStyle='rgba(255,210,60,'+pulse+')';g.lineWidth=3;
-   g.setLineDash([5,3]);g.strokeRect(x+1.5,y+1.5,S-3,S-3);g.setLineDash([]);
-  }else{
-   g.strokeStyle='rgba(255,255,255,'+pulse+')';g.lineWidth=3;
-   g.strokeRect(x+1.5,y+1.5,S-3,S-3);
+   g.strokeStyle='rgba(255,210,60,'+pulse+')';g.lineWidth=3;g.setLineDash([5,3]);g.strokeRect(x+1.5,y+1.5,S-3,S-3);g.setLineDash([]);
+  } else {
+   g.strokeStyle='rgba(255,255,255,'+pulse+')';g.lineWidth=3;g.strokeRect(x+1.5,y+1.5,S-3,S-3);
   }
   g.fillStyle='rgba(255,255,255,.9)';g.beginPath();g.arc(x+S/2,y+S/2,3,0,6.283);g.fill();
   g.fillStyle='rgba(255,255,255,.4)';g.beginPath();g.arc(x+S/2,y+S/2,6,0,6.283);g.fill();
  }
- // Joystick nişan çizgisi
  if(Math.hypot(sx,sy)>.35||actHeld){
   const cx=(px+pw/2-camX)*S,cy=(py+ph*.5-camY)*S;
-  const tx=a.hit?(a.hit[0]+.5-camX)*S:cx+aimX*S*2.2;
-  const ty=a.hit?(a.hit[1]+.5-camY)*S:cy+aimY*S*2.2;
+  const tx=a.hit?(a.hit[0]+.5-camX)*S:cx+aimX*S*2.2,ty=a.hit?(a.hit[1]+.5-camY)*S:cy+aimY*S*2.2;
   const grd=g.createLinearGradient(cx,cy,tx,ty);
   grd.addColorStop(0,'rgba(255,255,255,.6)');grd.addColorStop(1,'rgba(255,255,255,.1)');
   g.strokeStyle=grd;g.lineWidth=2.5;
   g.setLineDash([6,6]);g.beginPath();g.moveTo(cx,cy);g.lineTo(tx,ty);g.stroke();g.setLineDash([]);
  }
- // Kazma
  if(mine){
   const b=mine.layer=='bg'?getBg(mine.tx,mine.ty):get(mine.tx,mine.ty);
   if(b&&mine.p>0){
    const x=(mine.tx-camX)*S,y=(mine.ty-camY)*S,p=mine.p;
    drawCrack(x,y,p,mine.tx,mine.ty);
-   g.strokeStyle='rgba(255,210,60,'+(.7+.3*Math.sin(t*12))+')';g.lineWidth=3;
-   g.strokeRect(x+1.5,y+1.5,S-3,S-3);
+   g.strokeStyle='rgba(255,210,60,'+(.7+.3*Math.sin(t*12))+')';g.lineWidth=3;g.strokeRect(x+1.5,y+1.5,S-3,S-3);
    g.fillStyle='rgba(0,0,0,.7)';g.fillRect(x,y-12,S,8);
    g.fillStyle='#1a1a1a';g.fillRect(x+1,y-11,S-2,6);
    g.fillStyle='#ffd23c';g.fillRect(x+1,y-11,(S-2)*p,6);
    g.fillStyle='rgba(255,255,255,.4)';g.fillRect(x+1,y-11,(S-2)*p,2);
   }
  }
- // Pop efektleri
  for(const q of pops){
-  const k=1-q.t/.28,sz=S*(1+k*.6);
-  const x=(q.x+.5-camX)*S-sz/2,y=(q.y+.5-camY)*S-sz/2;
+  const k=1-q.t/.28,sz=S*(1+k*.6),x=(q.x+.5-camX)*S-sz/2,y=(q.y+.5-camY)*S-sz/2;
   g.globalAlpha=Math.max(0,1-k)*.75;
   g.fillStyle=q.c;g.fillRect(x,y,sz,sz);
   g.fillStyle='rgba(255,255,255,.5)';g.fillRect(x+sz*.2,y+sz*.2,sz*.3,sz*.3);
   g.globalAlpha=1;
  }
- // Partiküller
  for(const q of parts){
   const z=S*(q.s||.12);
   g.fillStyle=q.c;g.fillRect((q.x-camX)*S,(q.y-camY)*S,z,z);
@@ -287,7 +243,6 @@ function drawSky(){
  grd.addColorStop(0.7,'rgb('+c.join(',')+')');
  grd.addColorStop(1,'rgb('+c.map(v=>Math.min(255,v+20)).join(',')+')');
  g.fillStyle=grd;g.fillRect(0,0,VW,VH);
- // Yıldızlar
  if(day<0.4){
   const starAlpha=(1-day/0.4)*0.8;
   g.fillStyle='rgba(255,255,255,'+starAlpha+')';
@@ -299,7 +254,6 @@ function drawSky(){
   }
   g.globalAlpha=1;
  }
- // Güneş
  if(day>0.4){
   const sunX=VW-70,sunY=70-camY*.08,sunAlpha=Math.min(1,(day-0.4)*2.5);
   const sunGrd=g.createRadialGradient(sunX,sunY,10,sunX,sunY,80);
@@ -309,7 +263,6 @@ function drawSky(){
   g.fillStyle='rgba(255,246,180,'+sunAlpha+')';g.beginPath();g.arc(sunX,sunY,26,0,6.283);g.fill();
   g.fillStyle='rgba(255,255,220,'+sunAlpha+')';g.beginPath();g.arc(sunX,sunY,20,0,6.283);g.fill();
  }
- // Ay
  if(day<0.5){
   const moonX=100,moonY=80-camY*.05,moonAlpha=Math.min(1,(0.5-day)*2);
   const moonGrd=g.createRadialGradient(moonX,moonY,8,moonX,moonY,60);
@@ -322,14 +275,10 @@ function drawSky(){
   g.beginPath();g.arc(moonX+8,moonY+6,4,0,6.283);g.fill();
   g.beginPath();g.arc(moonX-4,moonY+9,3,0,6.283);g.fill();
  }
- // Dağlar
  const mountOff=-camX*.15,mountY=VH*.55-camY*.05;
  g.fillStyle='rgba(80,100,140,'+(day*0.3+0.2)+')';
  g.beginPath();g.moveTo(0,mountY+50);
- for(let i=0;i<8;i++){
-  const mx=(i*VW/6+mountOff)%(VW+200)-100;
-  g.lineTo(mx,mountY-Math.abs(Math.sin(i*1.7))*60);
- }
+ for(let i=0;i<8;i++){const mx=(i*VW/6+mountOff)%(VW+200)-100;g.lineTo(mx,mountY-Math.abs(Math.sin(i*1.7))*60)}
  g.lineTo(VW,mountY+50);g.closePath();g.fill();
 }
 
@@ -371,17 +320,27 @@ function draw(){
 
  // ==================== OYUNCU ====================
  const X=(px-camX)*S,Y=(py-camY)*S,hurt=hurtT>0;
+ const inWaterFlag = inWater(px, py); // Karakter suda mı?
+
  g.fillStyle='rgba(0,0,0,.3)';
  g.beginPath();g.ellipse(X+pw*S/2,Y+ph*S,S*.4,S*.1,0,0,6.283);g.fill();
+ 
  g.save();g.translate(X+pw*S/2,Y);g.scale(face,1);
  const walk=Math.sin(anim)*.12*S;
- g.fillStyle='#2b2b7c';
- g.fillRect(-.22*S+walk,1.2*S,.2*S,.6*S);g.fillRect(.02*S-walk,1.2*S,.2*S,.6*S);
- g.fillStyle='#1a1a5c';
- g.fillRect(-.22*S+walk,1.7*S,.22*S,.1*S);g.fillRect(.02*S-walk,1.7*S,.22*S,.1*S);
+ 
+ // BURASI ÖNEMLİ: Eğer suda değilse bacakları çiz
+ if(!inWaterFlag){
+  g.fillStyle='#2b2b7c';
+  g.fillRect(-.22*S+walk,1.2*S,.2*S,.6*S);g.fillRect(.02*S-walk,1.2*S,.2*S,.6*S);
+  g.fillStyle='#1a1a5c';
+  g.fillRect(-.22*S+walk,1.7*S,.22*S,.1*S);g.fillRect(.02*S-walk,1.7*S,.22*S,.1*S);
+ }
+
+ // Gövde
  g.fillStyle=hurt?'#ff6666':'#2aa0a8';g.fillRect(-.25*S,.6*S,.5*S,.62*S);
  g.fillStyle=hurt?'#cc4444':'#1a8088';g.fillRect(-.25*S,.9*S,.5*S,.32*S);
  g.fillStyle=hurt?'#ff8888':'#1a8088';g.fillRect(-.15*S,.6*S,.3*S,.08*S);
+ 
  // Kol
  g.save();g.translate(0,.68*S);g.rotate(armA);
  g.fillStyle='#c68e6a';g.fillRect(0,-.08*S,.55*S,.16*S);
@@ -406,6 +365,7 @@ function draw(){
   }
  }
  g.restore();
+ 
  // Kafa
  g.fillStyle=hurt?'#ff9999':'#f0c090';g.fillRect(-.3*S,0,.6*S,.6*S);
  g.fillStyle='#3a2412';
@@ -416,6 +376,13 @@ function draw(){
  g.fillStyle='#000';g.fillRect(.13*S,.29*S,.05*S,.06*S);g.fillRect(-.12*S,.29*S,.05*S,.06*S);
  g.fillStyle='rgba(255,255,255,.8)';g.fillRect(.11*S,.27*S,.03*S,.03*S);g.fillRect(-.14*S,.27*S,.03*S,.03*S);
  g.fillStyle='#8a4a2a';g.fillRect(-.05*S,.46*S,.1*S,.03*S);
+ 
+ // Eğer suyun içindeyse vücudunun altına mavi bir ton (su içi hissi) ekle
+ if (inWaterFlag) {
+  g.fillStyle = 'rgba(60, 150, 255, 0.4)';
+  g.fillRect(-.35*S, .2*S, .7*S, 1.5*S);
+ }
+
  g.restore();
 
  // ==================== KARANLIK ====================
