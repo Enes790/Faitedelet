@@ -150,9 +150,9 @@ function update(dt){
  tod+=dt/90;
  todDay=(Math.sin(tod)+1)/2;
 
- // Canavar Doğma (Zombi/İskelet)
+ // Canavar Doğma (Zombi/İskelet): sınırlar spawnMob içinde (oyuncunun çevresine göre)
  spawnTimer+=dt;
- if(spawnTimer>4&&mobs.length<(todDay<0.3?7:3)){
+ if(spawnTimer>3){
   spawnTimer=0;
   spawnMob();
  }
