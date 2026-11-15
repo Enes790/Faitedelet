@@ -1,4 +1,4 @@
-// items.js — Eşya tanımları, envanter, craft mantığı
+// items.js — Eşya tanımları, envanter, craft mantığı, alet dayanıklılığı
 
 // ==================== EŞYA TANIMLARI ====================
 const NAME={
@@ -12,7 +12,8 @@ const NAME={
  35:'Elmas cevheri',36:'Elmas',37:'Elmas Blok',
  38:'Elmas kazma',39:'Elmas balta',40:'Elmas kürek',41:'Elmas kılıç',
  42:'Toprak Vazo',
- 43:'Su'
+ 43:'Su',
+ 44:'Tahta Kılıç',45:'Taş Kılıç',46:'Pişmiş Tavuk'
 };
 
 const IC={
@@ -26,7 +27,8 @@ const IC={
  35:'#7f7f7f',36:'#6ee8f0',37:'#6ee8f0',
  38:'#6ee8f0',39:'#6ee8f0',40:'#6ee8f0',41:'#6ee8f0',
  42:'#b06040',
- 43:'#3080d0'
+ 43:'#3080d0',
+ 44:'#b8864b',45:'#9a9a9a',46:'#d09050'
 };
 
 const GL={
@@ -37,7 +39,8 @@ const GL={
  32:'⛏',33:'🪓',34:'⚒',
  36:'💎',37:'💎',38:'⛏',39:'🪓',40:'⚒',41:'🗡',
  42:'🏺',
- 43:'💧'
+ 43:'💧',
+ 44:'🗡',45:'🗡',46:'🍗'
 };
 
 // [çıktı, adet, {malzeme:adet}, dökümGerekir]
@@ -51,10 +54,13 @@ const REC=[
  [13,1,{7:1,9:2},0],  // Tahta kürek
  [17,1,{3:3,9:2},0],  // Taş balta
  [18,1,{3:1,9:2},0],  // Taş kürek
+ [44,1,{7:2,9:1},0],  // Tahta Kılıç (YENİ)
+ [45,1,{3:2,9:1},0],  // Taş Kılıç (YENİ)
  [19,1,{7:4,16:1,8:4},0],  // Döküm Bloğu
  [21,1,{16:2,9:1},0],      // Demir Kılıç
  [20,4,{16:2,8:2},1],      // Cevher Topu (döküm)
  [24,2,{20:1,6:2,16:1},1], // Cam Topu (döküm)
+ [46,1,{28:1,8:1},1],      // Pişmiş Tavuk (döküm, 1 kömür) (YENİ)
  [23,2,{25:1},0],          // Gübre (kemik)
  [23,2,{22:1,2:1},0],      // Gübre (çürük et)
  [32,1,{16:3,9:2},0],      // Demir kazma
@@ -64,7 +70,7 @@ const REC=[
  [38,1,{36:3,9:2},0],      // Elmas kazma
  [39,1,{36:3,9:2},0],      // Elmas balta
  [40,1,{36:1,9:2},0],      // Elmas kürek
- [41,1,{36:2,9:1},0],      // Elmas kılıç
+ [41,1,{36:3,9:1},0],      // Elmas kılıç (2 -> 3 elmas)
 ];
 
 const HARD={
@@ -74,45 +80,168 @@ const HARD={
 
 const PLACE=new Set([2,3,4,5,6,7,8,14,19,31,37]);
 
+// ==================== DAYANIKLILIK ====================
+// Aletlerin azami kullanım sayısı (malzemeye göre)
+const DUR={
+ 10:40,12:40,13:40,44:40,       // tahta
+ 11:90,17:90,18:90,45:90,       // taş
+ 32:250,33:250,34:250,21:250,   // demir
+ 38:800,39:800,40:800,41:800    // elmas
+};
+
+// Her alet türü için seviye sırası: [tahta, taş, demir, elmas]
+const TOOLS={
+ pick:[10,11,32,38],
+ axe:[12,17,33,39],
+ shovel:[13,18,34,40],
+ sword:[44,45,21,41]
+};
+
+// Tamir malzemesi: azami dayanıklılığa göre [malzeme, adet]. Her adet ömrün %35'ini geri verir
+const REPAIR_BY_DUR={40:[7,1],90:[3,2],250:[16,1],800:[36,1]};
+
+// Yenilebilir eşyalar: id -> yenilenen can
+const FOOD={22:1,28:2,46:5};
+
 // ==================== EŞYA YARDIMCILARI ====================
-const canUse=id=>PLACE.has(id)||id==23;
-const isTool=id=>TOOL_SET.has(id);
+const isTool=id=>DUR[id]!==undefined||TOOL_SET.has(id);
+const canUse=id=>PLACE.has(id)||id==23||FOOD[id]!==undefined;
 const stackMax=id=>isTool(id)?1:MAXS;
-const badge=s=>s.n>1?'<span class="n">'+s.n+'</span>':'';
+const durOf=s=>s.d===undefined?DUR[s.id]:s.d;
+
+// Dayanıklılık çubuğu: sağlam aletlerde görünmez. Slotun position:relative olması gerekir.
+function durBar(s){
+ const max=DUR[s.id];if(!max)return'';
+ const d=durOf(s);if(d>=max)return'';
+ const p=Math.max(0,Math.min(1,d/max));
+ const c=p>.5?'#4ac04a':p>.2?'#ffd23c':'#e74c3c';
+ return '<span style="position:absolute;left:3px;right:3px;bottom:2px;height:3px;background:rgba(0,0,0,.65);border-radius:2px;pointer-events:none"><b style="display:block;height:100%;width:'+(p*100)+'%;background:'+c+';border-radius:2px"></b></span>';
+}
+const badge=s=>(s.n>1?'<span class="n">'+s.n+'</span>':'')+durBar(s);
 const icon=id=>'<i class="ic" style="background:'+IC[id]+'">'+(GL[id]||'')+'</i>';
 
 function count(id){let c=0;for(const s of slots)if(s&&s.id==id)c+=s.n;return c}
 function room(id){const m=stackMax(id);for(const s of slots){if(!s||(s.id==id&&s.n<m))return true}return false}
-function addItem(id,n){n=n||1;const m=stackMax(id);
+
+// d: sadece aletler için kalan dayanıklılık (verilmezse tam dolu)
+function addItem(id,n,d){n=n||1;const m=stackMax(id);
  for(let i=0;i<NS&&n>0;i++){const s=slots[i];if(s&&s.id==id&&s.n<m){const a=Math.min(n,m-s.n);s.n+=a;n-=a}}
- for(let i=0;i<NS&&n>0;i++){if(!slots[i]){const a=Math.min(n,m);slots[i]={id,n:a};n-=a}}
+ for(let i=0;i<NS&&n>0;i++){if(!slots[i]){const a=Math.min(n,m);slots[i]={id,n:a};if(DUR[id]!==undefined)slots[i].d=(d===undefined?DUR[id]:d);n-=a}}
  refresh();return n}
 function take(id,n){for(let i=NS-1;i>=0&&n>0;i--){const s=slots[i];if(s&&s.id==id){const a=Math.min(n,s.n);s.n-=a;n-=a;if(!s.n)slots[i]=null}}refresh()}
 
 function nearForge(){const cx=Math.floor(px+pw/2),cy=Math.floor(py+ph/2);
  for(let y=cy-5;y<=cy+5;y++)for(let x=cx-5;x<=cx+5;x++){if(inBounds(x,y)&&w[y*W+x]==19)return true}return false}
 
+// ==================== ELDE TUTMA (OTOMATİK SEÇİM) ====================
+// Her tür için envanterdeki en yüksek seviyeli aleti seçer; aynı seviyede
+// iki tane varsa daha çok yıpranmış olanı önce kullanır.
+function heldIdx(kind){
+ const list=TOOLS[kind];
+ for(let lv=3;lv>=0;lv--){
+  let best=-1;
+  for(let i=0;i<NS;i++){
+   const s=slots[i];
+   if(s&&s.id==list[lv]&&(best<0||durOf(s)<durOf(slots[best])))best=i;
+  }
+  if(best>=0)return best;
+ }
+ return -1;
+}
+const toolLv=kind=>{const i=heldIdx(kind);return i<0?0:TOOLS[kind].indexOf(slots[i].id)+1};
+
 // ==================== ALET SEVİYELERİ ====================
-const pickLv=()=>count(38)>0?4:count(32)>0?3:count(11)>0?2:count(10)>0?1:0;
-const axeLv=()=>count(39)>0?4:count(33)>0?3:count(17)>0?2:count(12)>0?1:0;
-const shovelLv=()=>count(40)>0?4:count(34)>0?3:count(18)>0?2:count(13)>0?1:0;
-const hasSword=()=>count(21)>0||count(41)>0;
-const needsTool=b=>b==15&&pickLv()<2;
+const pickLv=()=>toolLv('pick');
+const axeLv=()=>toolLv('axe');
+const shovelLv=()=>toolLv('shovel');
+const swordLv=()=>toolLv('sword');
+const hasSword=()=>swordLv()>0;
+const swordDmg=()=>[1,1.5,2,2.5,3][swordLv()];
+const needsTool=b=>(b==15&&pickLv()<2)||(b==35&&pickLv()<3);
 
 const mineTime=b=>{
- if(b==3||b==8||b==15||b==19||b==35)return HARD[b]/[1,2.2,3.8,6.0,10.0][pickLv()];
+ if(b==3||b==8||b==15||b==19||b==35||b==37)return HARD[b]/[1,2.2,3.8,6.0,10.0][pickLv()];
  if(b==4||b==7)return HARD[b]/[1,2.8,4.2,7.0,11.0][axeLv()];
  if(b==1||b==2||b==6||b==14||b==31)return HARD[b]/[1,2.8,4.2,7.0,11.0][shovelLv()];
  return HARD[b]||1;
 };
 
+// Hangi blok hangi aletle kırılır
+const toolKindFor=b=>{
+ if(b==3||b==8||b==15||b==19||b==35||b==37)return 'pick';
+ if(b==4||b==7)return 'axe';
+ if(b==1||b==2||b==6||b==14||b==31)return 'shovel';
+ return null;
+};
+
+// ==================== YIPRANMA ====================
+function wear(kind,amt){
+ const i=heldIdx(kind);if(i<0)return;
+ const s=slots[i],max=DUR[s.id];
+ if(s.d===undefined)s.d=max;
+ const old=s.d;s.d-=amt;
+ if(s.d<=0){
+  slots[i]=null;
+  fl.push({x:px+pw/2,y:py-.3,t:1.6,s:NAME[s.id]+' kırıldı!'});
+  buzz([40,30,40]);
+  refresh();return;
+ }
+ const thr=max*.1;
+ if(old>thr&&s.d<=thr)fl.push({x:px+pw/2,y:py-.3,t:1.6,s:'Alet kırılmak üzere!'});
+ refresh();
+}
+// Blok kırılınca çağır (mineStep içinde). Sert bloklar aleti 2 kat yıpratır.
+function onBlockBroken(b){
+ const k=toolKindFor(b);if(!k)return;
+ wear(k,(HARD[b]||1)>=6?2:1);
+}
+// Kılıçla vurulunca çağır (strike içinde)
+function onStrike(){wear('sword',1)}
+
+// ==================== TAMİR (döküm bloğu yanında) ====================
+function damagedTools(){
+ const r=[];
+ for(let i=0;i<NS;i++){const s=slots[i];if(s&&DUR[s.id]&&durOf(s)<DUR[s.id])r.push(i)}
+ return r;
+}
+function canRepair(i){
+ const s=slots[i];if(!s||!DUR[s.id])return false;
+ const max=DUR[s.id];if(durOf(s)>=max)return false;
+ const r=REPAIR_BY_DUR[max];
+ return nearForge()&&count(r[0])>=r[1];
+}
+function repairTool(i){
+ if(!canRepair(i))return false;
+ const s=slots[i],max=DUR[s.id],r=REPAIR_BY_DUR[max];
+ take(r[0],r[1]);
+ s.d=Math.min(max,durOf(s)+Math.ceil(max*.35));
+ refresh();return true;
+}
+
+// ==================== YEMEK ====================
+// Seçili slottaki yemeği yer. useItem() başında çağır.
+function eatSel(){
+ const s=slots[sel];if(!s||FOOD[s.id]===undefined)return false;
+ if(playerHp>=playerMaxHp){fl.push({x:px+pw/2,y:py-.3,t:1.2,s:'Canın dolu'});return false}
+ const h=FOOD[s.id];
+ playerHp=Math.min(playerMaxHp,playerHp+h);
+ s.n--;if(!s.n)slots[sel]=null;
+ refresh();renderHearts();
+ fl.push({x:px+pw/2,y:py-.3,t:1.2,s:'+'+h+' can'});
+ return true;
+}
+
 // ==================== CRAFT MANTIĞI ====================
 const hasIng=r=>Object.keys(r[2]).every(k=>count(+k)>=r[2][k]);
-const canCraft=(r,nf)=>hasIng(r)&&!(isTool(r[0])&&count(r[0])>0)&&(!r[3]||nf);
+// Aletlerden en fazla 2 tane (1 yedek) taşınabilir
+const canCraft=(r,nf)=>hasIng(r)&&!(isTool(r[0])&&count(r[0])>=2)&&(!r[3]||nf);
 const batches=r=>isTool(r[0])?1:Math.min(...Object.keys(r[2]).map(k=>Math.floor(count(+k)/r[2][k])));
 function craftOnce(i){const r=REC[i];if(!canCraft(r,nearForge()))return false;
  for(const k in r[2])take(+k,r[2][k]);
  const left=addItem(r[0],r[1]);
- if(left>0)for(let n=0;n<left;n++)drops.push({x:px+pw/2,y:py,vy:-4,b:r[0],age:0});
+ if(left>0)for(let n=0;n<left;n++)drops.push({x:px+pw/2,y:py,vy:-4,b:r[0],age:0,d:DUR[r[0]]});
  return true}
-function craft(i,all){if(!all){craftOnce(i);return}let n=0;while(n<16&&craftOnce(i))n++}
+function craft(i,all){
+ // Aletler hep tek tek üretilir ("hepsini yap" malzemeyi tüketmesin)
+ if(!all||isTool(REC[i][0])){craftOnce(i);return}
+ let n=0;while(n<16&&craftOnce(i))n++}
