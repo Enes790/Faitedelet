@@ -3,6 +3,12 @@
 // ==================== YARDIMCI ====================
 function burst(x,y,n,c,sp){for(let i=0;i<n;i++)parts.push({x,y,vx:(Math.random()-.5)*sp,vy:-Math.random()*sp*.7,l:.4+Math.random()*.4,c,s:.08+Math.random()*.1})}
 
+// ==================== AYARLAR ====================
+const MOB_DESPAWN_DIST=70;   // oyuncudan bu kadar uzaktaki moblar silinir
+const MOB_NEAR_DIST=40;      // "yakın mob" sayımı için mesafe
+const MOB_TOTAL_CAP=16;      // dünyadaki toplam düşman sınırı
+const RESPAWN_PROTECT=2.5;   // dirilince hasar almama süresi (sn)
+
 // ==================== ORTAK MOB ====================
 const newMob=(type,x,y)=>({
  id:mobIdCounter++,
@@ -13,7 +19,7 @@ const newMob=(type,x,y)=>({
  face:1,hurt:0,burn:0,onGround:false,
  atkCd:0,shootCd:1.5,aimT:0,
  dead:false,
- wanderCd:0,wanderDir:0,panicCd:0
+ wanderCd:0,wanderDir:0,panicCd:0,stun:0
 });
 
 function moveMob(m,dt){
@@ -89,34 +95,74 @@ function spawnChicken(){
  return false;
 }
 
-// ==================== ZOMBI/İSKELET SPAWN (karanlık) ====================
+// ==================== ZOMBI/İSKELET SPAWN ====================
+// İki mod: GECE YÜZEYDE (açık havada) ve YERALTINDA (karanlık mağara).
+// Oyuncunun çevresinde 12-25 blok uzakta, ekranın dışında doğar.
+// Sınırlar oyuncunun çevresindeki mob sayısına göre. game.js her ~3 sn'de bir çağırır.
 function spawnMob(){
+ const pcx=px+pw/2,pcy=py+ph/2;
+ const surfP=hgt(Math.max(0,Math.min(W-1,Math.floor(pcx))));
+ const under=pcy>surfP+6;       // oyuncu yeraltında mı
  const isNight=todDay<0.3;
- for(let tries=0;tries<20;tries++){
+ if(!under&&!isNight)return;    // gündüz yüzeyde düşman yok
+
+ // yakın / toplam düşman sayısı
+ let near=0,nearSk=0,total=0;
+ for(const m of mobs){
+  if(m.dead||m.type=='c')continue;
+  total++;
+  if(Math.hypot(m.x-pcx,m.y-pcy)<MOB_NEAR_DIST){near++;if(m.type=='s')nearSk++}
+ }
+ const cap=under?5:6;
+ if(near>=cap||total>=MOB_TOTAL_CAP)return;
+
+ for(let tries=0;tries<25;tries++){
   const dir=Math.random()<0.5?-1:1;
-  const mx=Math.floor(px+pw/2+dir*(10+Math.random()*10));
-  if(mx<2||mx>W-2)continue;
+  const mx=Math.floor(pcx+dir*(12+Math.random()*13));
+  if(mx<2||mx>W-3)continue;
   let spawnY=-1;
-  if(isNight){
-   for(let y=2;y<H-2;y++){
-    if(solid(mx,y)&&!solid(mx,y-1)&&!solid(mx,y-2)){spawnY=y-2;break}
+
+  if(under){
+   // Oyuncu derinliğinin çevresinde açık zemin ara (rastgele noktadan başla)
+   const y0=Math.max(2,Math.floor(pcy)-8),y1=Math.min(H-3,Math.floor(pcy)+8);
+   const span=y1-y0;if(span<=0)continue;
+   const off=Math.floor(Math.random()*span);
+   for(let k=0;k<span;k++){
+    const y=y0+(k+off)%span;
+    if(!solid(mx,y)&&!solid(mx,y+1)&&solid(mx,y+2)){spawnY=y;break}
    }
   }else{
+   // Gece yüzey: yüzeydeki zemini bul
    const surf=hgt(mx);
-   for(let y=surf+5;y<H-2;y++){
-    if(!solid(mx,y)&&!solid(mx,y+1)&&solid(mx,y+2)){spawnY=y;break}
+   for(let y=Math.max(3,surf-4);y<=surf+3;y++){
+    if(solid(mx,y)&&!solid(mx,y-1)&&!solid(mx,y-2)){spawnY=y-2;break}
    }
   }
   if(spawnY<0)continue;
+
+  // Suyun içinde doğmasın
+  if(get(mx,spawnY)==43||get(mx,spawnY+1)==43)continue;
+
+  // Meşale/döküm yakınında doğmasın (güvenli bölgeler)
   let nearLight=false;
   for(let dy=-3;dy<=3&&!nearLight;dy++)for(let dx=-3;dx<=3;dx++){
    const bx=mx+dx,by=spawnY+dy;
    if(inBounds(bx,by)&&(w[by*W+bx]==14||w[by*W+bx]==19)){nearLight=true;break}
   }
   if(nearLight)continue;
-  if(skyExposed[spawnY*W+mx]>3)continue;
-  const sk=mobs.filter(m=>m.type=='s'&&!m.dead).length;
-  mobs.push(newMob(Math.random()<.35&&sk<3?'s':'z',mx+.15,spawnY));
+
+  // Yeraltında sadece karanlık yerlerde
+  if(under&&skyExposed[spawnY*W+mx]>3)continue;
+
+  // Çok yakında veya gözünün önünde doğmasın
+  const dist=Math.hypot(mx+.5-pcx,spawnY+1-pcy);
+  if(dist<10)continue;
+  if(dist<16&&los(mx+.5,spawnY+1,pcx,pcy))continue;
+
+  // Tür seçimi: yeraltında daha çok iskelet, yüzeyde çoğunlukla zombi
+  const skChance=under?.35:.15,skMax=under?2:1;
+  const type=(Math.random()<skChance&&nearSk<skMax)?'s':'z';
+  mobs.push(newMob(type,mx+.15,spawnY));
   return;
  }
 }
@@ -130,6 +176,16 @@ function updateMobs(dt){
   m.atkCd=Math.max(0,m.atkCd-dt);
   m.shootCd=Math.max(0,m.shootCd-dt);
   const mx=m.x+pw/2,my=m.y+ph/2,dx=cx-mx,dy=cy-my,dist=Math.hypot(dx,dy);
+
+  // Çok uzaktaki mobları sessizce sil (keşifte arkanda birikmesin)
+  if(dist>MOB_DESPAWN_DIST){m.dead=true;continue}
+
+  // Sersemlemiş mob (respawn'da geri itilenler): yapay zeka çalışmaz
+  if(m.stun>0){
+   m.stun-=dt;m.vx*=.92;
+   moveMob(m,dt);
+   continue;
+  }
 
   if(m.type=='c'){
    // TAVUK: gezin, kaç, panik
@@ -249,10 +305,15 @@ function strike(m){
 // ==================== OYUNCU RESPAWN ====================
 function respawn(){
  playerHp=playerMaxHp;
- hurtT=0.5;invT=1;regenTimer=0;
+ hurtT=0.5;invT=RESPAWN_PROTECT;regenTimer=0;
  renderHearts();
  px=W/2;py=hgt(W/2)-3;vx=0;vy=0;
  arrows=[];
- mobs=mobs.filter(m=>Math.hypot(m.x-px,m.y-py)>12);
+ // Yakındaki mobları silme: sersemlet ve geri it
+ for(const m of mobs){
+  if(m.dead)continue;
+  const dx=m.x-px,d=Math.hypot(dx,m.y-py);
+  if(d<10){m.stun=1.5;m.vx=(dx>=0?1:-1)*7;m.vy=-6}
+ }
  fl.push({x:px,y:py,t:1.5,s:'Respawn'});
 }
