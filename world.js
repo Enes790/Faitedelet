@@ -19,6 +19,134 @@ function plantTree(x,h,t){
  return true;
 }
 
+// ==================== YAPI ŞABLON SİSTEMİ ====================
+// Harf -> blok: ' ' hava, '#' taş, 'P' kalas, 'T' meşale, 'V' vazo, 'I' demir, 'D' elmas cevheri, 'F' döküm, 'W' odun, '.' dokunma
+const LEG={' ':0,'#':3,'P':7,'T':14,'V':42,'I':15,'D':35,'F':19,'W':4};
+
+function stamp(rows,x0,y0){
+ for(let r=0;r<rows.length;r++)for(let c=0;c<rows[r].length;c++){
+  const ch=rows[r][c];if(ch==='.')continue;
+  const x=x0+c,y=y0+r;if(!inBounds(x,y))continue;
+  w[y*W+x]=LEG[ch]!==undefined?LEG[ch]:0;
+  bg[y*W+x]=0;
+ }
+}
+
+// Alanda su var mı / sınır dışı mı
+function areaFree(x0,y0,tw,th){
+ for(let dy=-1;dy<=th;dy++)for(let dx=-1;dx<=tw;dx++){
+  const x=x0+dx,y=y0+dy;
+  if(!inBounds(x,y))return false;
+  if(w[y*W+x]===43)return false;
+ }
+ return true;
+}
+
+// Yatay 2 blok yüksekliğinde bağlantı tüneli (başka bir boşluğa değince durur)
+function linkTunnel(x,y,dir,max){
+ for(let i=0;i<max;i++){
+  const tx=x+dir*i;
+  if(!inBounds(tx,y))break;
+  if(i>0&&w[y*W+tx]===0&&w[(y-1)*W+tx]===0)break;
+  for(let dy=-1;dy<=0;dy++){
+   const ty=y+dy;
+   if(inBounds(tx,ty)&&w[ty*W+tx]!==43)w[ty*W+tx]=0;
+  }
+ }
+}
+
+// ==================== YAPI 1: YERALTI ZİNDANI ====================
+const DUNGEON=[
+ '#############',
+ '#T         T#',
+ '#     V     #',
+ '#   PPPPP   #',
+ '             ',
+ ' V   DDD   V ',
+ '#############'
+];
+
+function placeDungeon(){
+ for(let attempt=0;attempt<40;attempt++){
+  const cx=8+Math.floor(Math.random()*(W-30));
+  const surf=hgt(cx);
+  const range=H-surf-18-10;
+  if(range<=0)return false;
+  const y0=surf+18+Math.floor(Math.random()*range);
+  const tw=DUNGEON[0].length,th=DUNGEON.length;
+  if(y0+th+2>=H)continue;
+  let ok=true;
+  for(let dx=0;dx<tw;dx++)if(y0<hgt(cx+dx)+12){ok=false;break}
+  if(!ok||!areaFree(cx,y0,tw,th))continue;
+  stamp(DUNGEON,cx,y0);
+  linkTunnel(cx-1,y0+5,-1,16);
+  linkTunnel(cx+tw,y0+5,1,16);
+  return true;
+ }
+ return false;
+}
+
+// ==================== YAPI 2: TERK EDİLMİŞ MADEN KUYUSU ====================
+function placeMine(){
+ for(let attempt=0;attempt<40;attempt++){
+  const len=30+Math.floor(Math.random()*21);
+  const total=len+7;
+  const dir=Math.random()<0.5?1:-1;
+  const sx=dir===1?6+Math.floor(Math.random()*(W-total-12)):total+6+Math.floor(Math.random()*(W-total-12));
+  const surf=hgt(sx);
+  const range=H-surf-18-6;
+  if(range<=0)return false;
+  const sy=surf+18+Math.floor(Math.random()*range);
+  if(sy+2>=H)continue;
+  // doğrulama
+  let ok=true;
+  for(let i=0;i<=total&&ok;i++){
+   const x=sx+dir*i;
+   if(!inBounds(x,sy)){ok=false;break}
+   if(sy-3<hgt(x)+8){ok=false;break}
+   for(let dy=-3;dy<=1;dy++)if(!inBounds(x,sy+dy)||w[(sy+dy)*W+x]===43){ok=false;break}
+  }
+  if(!ok)continue;
+
+  // ana koridor (3 yüksek)
+  for(let i=0;i<len;i++){
+   const x=sx+dir*i;
+   for(let dy=-2;dy<=0;dy++)w[(sy+dy)*W+x]=0;
+   // zemin: bazı yerlerde kalas
+   if(w[(sy+1)*W+x]===3&&i%6<2)w[(sy+1)*W+x]=7;
+   // destek kirişleri (arka planda, geçişi engellemez)
+   if(i%6===0){
+    for(let dy=-2;dy<=0;dy++)bg[(sy+dy)*W+x]=4;
+    for(let dx=-1;dx<=1;dx++){
+     const bx=x+dx;
+     if(inBounds(bx,sy-2)&&w[(sy-2)*W+bx]===0)bg[(sy-2)*W+bx]=7;
+    }
+   }
+   // meşale
+   if(i%12===3)w[(sy-2)*W+x]=14;
+   // tavanda ara sıra demir cevheri
+   if(Math.random()<0.08&&w[(sy-3)*W+x]===3)w[(sy-3)*W+x]=15;
+  }
+
+  // son oda (5x4) + ödül
+  for(let k=0;k<7;k++){
+   const x=sx+dir*(len+k);
+   if(k<5){for(let dy=-3;dy<=0;dy++)w[(sy+dy)*W+x]=0}
+  }
+  const vx=sx+dir*(len+2);
+  w[sy*W+vx]=42;
+  const tx=sx+dir*(len+1);
+  w[(sy-3)*W+tx]=14;
+  // duvarda elmas cevheri
+  const dx0=sx+dir*(len+5);
+  if(w[sy*W+dx0]===3)w[sy*W+dx0]=35;
+  if(w[(sy-1)*W+dx0]===3)w[(sy-1)*W+dx0]=35;
+  if(w[(sy-2)*W+dx0]===3&&Math.random()<0.6)w[(sy-2)*W+dx0]=35;
+  return true;
+ }
+ return false;
+}
+
 // ==================== DÜNYA ÜRETİMİ ====================
 (function gen(){
  // 1. Yüzey + Taş + Deniz Seviyesi (Su)
@@ -31,13 +159,13 @@ function plantTree(x,h,t){
    else if(d==0)b=1;
    else if(d<4)b=2;
    else b=3;
-   
+
    // Eğer zemin deniz seviyesinin altındaysa, yüzeyi kuma çevir
    if(h > SEA_LEVEL && d === 0) b = 6; 
-   
+
    w[y*W+x]=b;
   }
-  
+
   // Deniz seviyesine kadar olan boşlukları suyla doldur (Havada su kalmaz)
   if (h > SEA_LEVEL) {
    for (let y = SEA_LEVEL; y < h; y++) {
@@ -55,12 +183,11 @@ function plantTree(x,h,t){
    const tx=cx+dx,ty=cy+dy;
    if(inBounds(tx,ty)&&w[ty*W+tx]===3)w[ty*W+tx]=0;
   }
-  // YENİ: Odalara %60 ihtimalle Loot Vazosu (42) koy
+  // Odalara %60 ihtimalle Loot Vazosu (42): zemini bulup üstüne koy
   if(Math.random()<0.6){
-   const vx=cx+Math.floor(Math.random()*5)-2; // Odanın içinde rastgele
-   const vy=cy+r-1; // Odanın zeminine yakın
-   if(inBounds(vx,vy) && w[vy*W+vx]===3){
-    w[(vy-1)*W+vx]=42; // Vazoyu zeminin bir üstüne koy
+   const vx=cx+Math.floor(Math.random()*5)-2;
+   for(let vy=cy;vy<cy+r+2;vy++){
+    if(inBounds(vx,vy+1)&&w[(vy+1)*W+vx]===3&&w[vy*W+vx]===0){w[vy*W+vx]=42;break}
    }
   }
  }
@@ -99,7 +226,7 @@ function plantTree(x,h,t){
     if(inBounds(px,py)&&w[py*W+px]===3)w[py*W+px]=0;
    }
    // Oda ihtimali
-   if(Math.random()<0.08)carveRoom(x,y); // Odalar artırıldı (%3 -> %8)
+   if(Math.random()<0.08)carveRoom(x,y);
    // Dallanma
    if(Math.random()<0.05){
     let bx=x,by=y,bdir=Math.floor(Math.random()*4);
@@ -118,8 +245,7 @@ function plantTree(x,h,t){
    }
   }
  }
- 
- // Tünel sayısı ve uzunluğu artırıldı
+
  const tunnelCount=Math.floor(W/16); 
  for(let i=0;i<tunnelCount;i++){
   const sx=5+Math.floor(Math.random()*(W-10));
@@ -129,14 +255,9 @@ function plantTree(x,h,t){
   carveTunnel(sx,sy,50+Math.floor(Math.random()*40));
  }
 
- // 3. Ağaçlar (Kulübe alanları hariç)
+ // 3. Ağaçlar (kulübe alanı placeForge içinde temizleniyor)
  for(let x=3;x<W-3;x+=4+Math.floor(Math.random()*5)){
   const h=hgt(x);if(w[h*W+x]!=1)continue;
-  let nearForge=false;
-  for(let cx=50;cx<W-50;cx+=100){
-   if(Math.abs(x-cx)<4){nearForge=true;break}
-  }
-  if(nearForge)continue;
   plantTree(x,h,3+Math.floor(Math.random()*2));
  }
 
@@ -178,12 +299,12 @@ function plantTree(x,h,t){
  }
  scatter(8,240,3,4,8);       // Kömür
  scatter(15,180,8,2,6);      // Demir
- scatter(35,15,40,1,3);      // Elmas (Biraz daha kolay bulunsun diye minD 40, damar 15 yapıldı)
+ scatter(35,60,22,2,5);      // Elmas (daha sık: 15 -> 60 damar, daha sığ, daha büyük)
 
  // 6. Terk edilmiş ocak kulübeleri (Göl ve Engebeli Arazi Çakışma Kontrolü)
  function placeForge(cx){
   const surf=hgt(cx);
-  
+
   // Çakışma Kontrolü: Etrafında su (43) var mı?
   for(let dx=-3;dx<=3;dx++){
    for(let dy=-1;dy<=2;dy++){
@@ -192,20 +313,20 @@ function plantTree(x,h,t){
     if(inBounds(tx,ty) && w[ty*W+tx] === 43) return false;
    }
   }
-  
+
   // Çakışma Kontrolü: Arazi çok engebeli mi? (Yükseklik farkı 1'den fazlaysa)
   for(let dx=-3;dx<=3;dx++){
    if(Math.abs(hgt(cx+dx) - surf) > 1) return false;
   }
 
-  // Alanı temizle
+  // Alanı temizle (ön plan + arka plan: ağaç/yaprak kalmasın)
   for(let dx=-3;dx<=3;dx++){
    for(let dy=-1;dy>=-6;dy--){
     const tx=cx+dx,ty=surf+dy;
-    if(inBounds(tx,ty))w[ty*W+tx]=0;
+    if(inBounds(tx,ty)){w[ty*W+tx]=0;bg[ty*W+tx]=0}
    }
   }
-  
+
   // Çatı (5 geniş)
   for(let dx=-2;dx<=2;dx++){
    if(inBounds(cx+dx,surf-4))w[(surf-4)*W+(cx+dx)]=3;
@@ -222,15 +343,21 @@ function plantTree(x,h,t){
   if(inBounds(cx,surf-3))w[(surf-3)*W+cx]=14;
   // Demir cevheri (sol duvarda %60)
   if(Math.random()<0.6&&inBounds(cx-2,surf-2))w[(surf-2)*W+(cx-2)]=15;
-  
+
   return true;
  }
- 
+
  let forgeX=50;
  while(forgeX<W-50){
-  placeForge(forgeX); // Eğer çakışma varsa false döner ve kulübe inşa edilmez
-  forgeX+=100+Math.floor(Math.random()*50); // Aralık biraz açıldı (100-150 blok)
+  placeForge(forgeX);
+  forgeX+=100+Math.floor(Math.random()*50);
  }
+
+ // 7. YENİ YAPILAR: yeraltı zindanları ve maden kuyuları
+ const dungeonCount=Math.floor(W/110)+1;
+ for(let i=0;i<dungeonCount;i++)placeDungeon();
+ const mineCount=Math.floor(W/90)+1;
+ for(let i=0;i<mineCount;i++)placeMine();
 })();
 
 // ==================== IŞIK KAYNAKLARI ====================
