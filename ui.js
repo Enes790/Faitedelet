@@ -14,6 +14,7 @@ const slotEls=[];
 for(let i=0;i<9;i++){
  const d=document.createElement('div');
  d.className='slot';
+ d.style.position='relative'; // dayanıklılık çubuğu için
  d.addEventListener('pointerdown',e=>{
   e.preventDefault();
   sel=i;
@@ -35,7 +36,7 @@ function renderBar(){
 let snT=0;
 function showName(){
  const s=slots[sel];
- selname.textContent=s?NAME[s.id]+(s.n>1?' ×'+s.n:''):'';
+ selname.textContent=s?NAME[s.id]+(DUR[s.id]?' '+durOf(s)+'/'+DUR[s.id]:'')+(s.n>1?' ×'+s.n:''):'';
  selname.style.opacity=s?1:0;
  clearTimeout(snT);
  snT=setTimeout(()=>{selname.style.opacity=0},1600);
@@ -63,7 +64,7 @@ renderHearts();
 // ==================== ENVANTER PANELİ ====================
 const cellHTML=i=>{
  const s=slots[i];
- return '<div class="cell'+(i==sel?' sel':'')+(i===mv?' mv':'')+'" data-s="'+i+'">'+
+ return '<div class="cell'+(i==sel?' sel':'')+(i===mv?' mv':'')+'" data-s="'+i+'" style="position:relative">'+
   (s?icon(s.id)+badge(s):'')+'</div>';
 };
 
@@ -76,7 +77,7 @@ function renderPan(){
  let h='<h3>Envanter <u id="px">Kapat</u></h3>';
  h+='<div class="info">';
  if(m){
-  h+='Taşınıyor: <b>'+NAME[m.id]+' ×'+m.n+'</b> — hedef kutuya dokun <u id="drop">At</u>';
+  h+='Taşınıyor: <b>'+NAME[m.id]+(DUR[m.id]?' ('+durOf(m)+'/'+DUR[m.id]+')':' ×'+m.n)+'</b> — hedef kutuya dokun <u id="drop">At</u>';
  }else{
   h+='Bir eşyaya dokun, sonra başka kutuya dokunarak taşı.';
  }
@@ -96,7 +97,7 @@ function renderPan(){
  h+='<h3>Üretim <small>';
  h+='Kazma: '+['El','Odun','Taş','Demir','Elmas'][pickLv()];
  h+=' · Balta: '+['El','Tahta','Taş','Demir','Elmas'][axeLv()];
- h+=' · Kılıç: '+(count(41)>0?'Elmas':count(21)>0?'Demir':'Yok');
+ h+=' · Kılıç: '+['Yok','Tahta','Taş','Demir','Elmas'][swordLv()];
  h+='</small></h3>';
 
  const list=[];
@@ -119,8 +120,28 @@ function renderPan(){
   h+='</div>';
  });
 
- if(!nf&&REC.some(r=>r[3]&&hasIng(r)&&!(isTool(r[0])&&count(r[0])>0))){
+ if(!nf&&REC.some(r=>r[3]&&hasIng(r)&&!(isTool(r[0])&&count(r[0])>=2))){
   h+='<div class="info">⚒ Bazı tarifler için Döküm Bloğu yakınında olmalısın.</div>';
+ }
+
+ // ---- TAMİR ----
+ const dmg=damagedTools();
+ if(dmg.length){
+  h+='<h3>Tamir</h3>';
+  if(!nf){
+   h+='<div class="info">⚒ Hasarlı aletlerini Döküm Bloğu yakınında tamir edebilirsin.</div>';
+  }else{
+   dmg.forEach(i=>{
+    const s=slots[i],max=DUR[s.id],r=REPAIR_BY_DUR[max];
+    h+='<div class="rc">';
+    h+='<div class="ico">'+icon(s.id)+'</div>';
+    h+='<span><b>'+NAME[s.id]+'</b> '+durOf(s)+'/'+max;
+    h+='<br><span style="opacity:.8">'+NAME[r[0]]+' '+r[1]+' → +%35 ömür</span></span>';
+    if(canRepair(i))h+='<button data-rep="'+i+'">Tamir</button>';
+    else h+='<span style="opacity:.6;font-size:12px">malzeme yok</span>';
+    h+='</div>';
+   });
+  }
  }
 
  pan.innerHTML=h;
@@ -161,6 +182,8 @@ pan.addEventListener('click',e=>{
  }
  const c=t.closest&&t.closest('.cell');
  if(c){cellTap(+c.dataset.s);return}
+ const rp=t.closest&&t.closest('button[data-rep]');
+ if(rp){repairTool(+rp.dataset.rep);return}
  const b=t.closest&&t.closest('button[data-i]');
  if(b)craft(+b.dataset.i,!!b.dataset.all);
 });
