@@ -293,10 +293,10 @@ function mobTarget(){
 }
 
 function strike(m){
- const hasDiamondSword=count(41)>0;
- const dmg=hasDiamondSword?3:hasSword()?2:1;
+ const dmg=swordDmg();
  const kb=hasSword()?0.5:0.2;
  hitMob(m,dmg,kb);
+ onStrike();
  attackCd=hasSword()?0.4:0.6;
  atkT=.25;
  buzz(20);
