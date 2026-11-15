@@ -1,140 +1,26 @@
-// render.js — Tüm çizim fonksiyonları
+// render.js — Su, Gökyüzü, Efektler, Işık ve Ana Çizim Döngüsü
 
-// ==================== YARDIMCI ====================
 function mix(a,b,t){return a.map((v,i)=>Math.round(v+(b[i]-v)*t))}
 
-// ==================== SU ANİMASYONU ====================
-function drawWater(x,y,X,Y){
- const now=Date.now();
+// ==================== SU ====================
+function drawWater(x,y,X,Y,now){
  const wave=Math.sin(now/500+X*0.5+Y*0.3)*0.5+0.5;
- // Yarı saydam, cam gibi su tabanı
  g.fillStyle='rgba(40, 120, 200, 0.6)'; 
  g.fillRect(x,y,S+1,S+1);
- // Derinlik hissi için alt kısma doğru daha koyu
  g.fillStyle='rgba(20, 80, 160, 0.4)';
  g.fillRect(x,y+S*.5,S+1,S*.5);
- // Yüzeydeki dalgalanma ve parlama
  g.fillStyle='rgba(150, 220, 255, 0.3)';
  g.fillRect(x+2,y+S*.1+wave*2,S*.6,2);
  g.fillRect(x+S*.4,y+S*.25+wave,S*.4,1.5);
- // Blok sınırlarını belli eden hafif bir çerçeve (slime görünümünü kırar)
  g.strokeStyle='rgba(255,255,255,0.1)';
  g.lineWidth=1;
  g.strokeRect(x+.5, y+.5, S-1, S-1);
 }
 
-// ==================== MOB ÇİZİM ====================
-function drawZombie(m,now,hf,t){
- // ... (Zombi çizim kodu aynı kalacak, buraya dokunmuyoruz)
- const walk=Math.sin(t)*.12*S,armSwing=Math.sin(t*1.3)*.15*S;
- g.fillStyle='#2a2a4a';
- g.fillRect(-.22*S+walk,1.15*S,.18*S,.6*S);g.fillRect(.02*S-walk,1.15*S,.18*S,.6*S);
- g.fillStyle='#1a1a3a';
- g.fillRect(-.22*S+walk,1.65*S,.2*S,.1*S);g.fillRect(.02*S-walk,1.65*S,.2*S,.1*S);
- g.fillStyle=hf?'#ff6666':'#5a2a2a';g.fillRect(-.26*S,.6*S,.52*S,.6*S);
- g.fillStyle=hf?'#ff8888':'#3a1a1a';
- g.fillRect(-.26*S,.9*S,.15*S,.15*S);g.fillRect(.05*S,1.05*S,.1*S,.1*S);
- g.fillStyle=hf?'#ff9999':'#5a8a4a';
- g.fillRect(.15*S,.7*S+armSwing,.5*S,.14*S);g.fillRect(-.35*S,.7*S-armSwing,.18*S,.14*S);
- g.fillStyle='#4a7a3a';g.fillRect(.6*S,.7*S+armSwing,.08*S,.14*S);
- g.fillStyle=hf?'#ff8888':'#4a7a3a';g.fillRect(-.28*S,0,.56*S,.6*S);
- g.fillStyle='rgba(0,0,0,.2)';g.fillRect(-.28*S,0,.56*S,.1*S);
- g.fillStyle='#2a1a10';
- g.fillRect(-.28*S,-.05*S,.56*S,.12*S);g.fillRect(-.28*S,0,.1*S,.2*S);g.fillRect(.15*S,0,.13*S,.15*S);
- const eyeGlow=Math.sin(now/300+m.id)*0.3+0.7;
- g.fillStyle='rgba(200,20,20,'+eyeGlow+')';
- g.fillRect(.06*S,.2*S,.14*S,.12*S);g.fillRect(-.2*S,.2*S,.14*S,.12*S);
- g.fillStyle='#ff3333';g.fillRect(.08*S,.22*S,.06*S,.05*S);g.fillRect(-.18*S,.22*S,.06*S,.05*S);
- g.fillStyle='#fff';g.fillRect(.10*S,.23*S,.02*S,.02*S);g.fillRect(-.16*S,.23*S,.02*S,.02*S);
- g.fillStyle='#0a0a0a';g.fillRect(-.12*S,.42*S,.24*S,.08*S);
- g.fillStyle='#e0e0d0';
- g.fillRect(-.1*S,.42*S,.03*S,.05*S);g.fillRect(-.05*S,.42*S,.03*S,.05*S);
- g.fillRect(.02*S,.42*S,.03*S,.05*S);g.fillRect(.07*S,.42*S,.03*S,.05*S);
-}
-
-function drawSkeleton(m,now,hf,t){
- // ... (İskelet çizim kodu aynı kalacak)
- const walk=Math.sin(t)*.1*S,bone=hf?'#ffb0b0':'#e6e2d0',shade=hf?'#d08080':'#b8b4a0';
- g.fillStyle=bone;
- g.fillRect(-.2*S+walk,1.2*S,.11*S,.55*S);g.fillRect(.06*S-walk,1.2*S,.11*S,.55*S);
- g.fillStyle=shade;
- g.fillRect(-.23*S+walk,1.72*S,.17*S,.08*S);g.fillRect(.03*S-walk,1.72*S,.17*S,.08*S);
- g.fillStyle=bone;g.fillRect(-.2*S,1.12*S,.4*S,.1*S);
- g.fillStyle='#262626';g.fillRect(-.2*S,.6*S,.4*S,.54*S);
- g.fillStyle=bone;g.fillRect(-.02*S,.6*S,.05*S,.54*S);
- for(let i=0;i<4;i++)g.fillRect(-.2*S,(.66+i*.12)*S,.4*S,.05*S);
- g.fillRect(-.3*S,.64*S+walk*.3,.1*S,.5*S);
- g.fillRect(.1*S,.66*S,.5*S,.09*S);
- const bcx=.42*S,bcy=.7*S,br=.38*S,a1=-1.1,a2=1.1;
- g.strokeStyle='#7a5230';g.lineWidth=Math.max(2,S/16);g.lineCap='round';
- g.beginPath();g.arc(bcx,bcy,br,a1,a2);g.stroke();
- const e1x=bcx+Math.cos(a1)*br,e1y=bcy+Math.sin(a1)*br,e2x=bcx+Math.cos(a2)*br,e2y=bcy+Math.sin(a2)*br;
- const pull=m.aimT>0?Math.min(1,m.aimT/.6):0;
- const sx2=e1x-pull*.22*S;
- g.strokeStyle='rgba(240,240,230,.85)';g.lineWidth=1.5;
- g.beginPath();g.moveTo(e1x,e1y);g.lineTo(sx2,bcy);g.lineTo(e2x,e2y);g.stroke();
- if(pull>0){g.strokeStyle='#9a7a45';g.lineWidth=2;g.beginPath();g.moveTo(sx2,bcy);g.lineTo(bcx+br*.9,bcy);g.stroke();
-  g.fillStyle='#ddd';g.fillRect(bcx+br*.9,bcy-2,4,4)}
- g.fillStyle=bone;g.fillRect(-.28*S,0,.56*S,.58*S);
- g.fillStyle=shade;g.fillRect(-.28*S,0,.56*S,.08*S);g.fillRect(-.28*S,.5*S,.56*S,.08*S);
- g.fillStyle='#111';
- g.fillRect(.04*S,.17*S,.16*S,.15*S);g.fillRect(-.2*S,.17*S,.16*S,.15*S);
- const glow=pull>0?'#ff4444':'#6a6a6a';
- g.fillStyle=glow;g.fillRect(.09*S,.22*S,.06*S,.06*S);g.fillRect(-.15*S,.22*S,.06*S,.06*S);
- g.fillStyle='#111';g.fillRect(-.03*S,.36*S,.06*S,.07*S);
- g.fillStyle='#222';g.fillRect(-.14*S,.46*S,.28*S,.05*S);
- g.fillStyle=bone;for(let i=0;i<4;i++)g.fillRect((-.12+i*.07)*S,.46*S,.025*S,.05*S);
-}
-
-function drawChicken(m,now,hf,t){
- // ... (Tavuk çizim kodu aynı kalacak)
- g.save();g.scale(.55,.55);g.translate(0,.95*S);
- const walk=Math.sin(t*8)*.04*S,bob=Math.abs(Math.sin(t*8))*.04*S;
- const bodyC=hf?'#ffb0b0':'#d08040',wingC=hf?'#ffd0d0':'#f0e8d0';
- const legC='#e8a040',beakC='#f0c030',combC='#d03020';
- g.fillStyle=legC;g.fillRect(-.15*S+walk,1.5*S,.08*S,.35*S);g.fillRect(.07*S-walk,1.5*S,.08*S,.35*S);
- g.fillStyle=bodyC;g.fillRect(-.25*S,.7*S-bob,.5*S,.85*S);
- g.fillStyle='rgba(0,0,0,.15)';g.fillRect(-.25*S,1.35*S-bob,.5*S,.2*S);
- g.fillStyle=wingC;g.fillRect(-.3*S,.85*S-bob,.08*S,.4*S);g.fillRect(.22*S,.85*S-bob,.08*S,.4*S);
- g.fillStyle=bodyC;g.fillRect(-.32*S,.75*S-bob,.08*S,.25*S);
- g.fillStyle=bodyC;g.fillRect(-.18*S,.35*S-bob,.36*S,.4*S);
- g.fillStyle=combC;g.fillRect(-.1*S,.3*S-bob,.05*S,.1*S);g.fillRect(-.02*S,.28*S-bob,.05*S,.12*S);g.fillRect(.06*S,.3*S-bob,.05*S,.1*S);
- g.fillStyle=beakC;g.fillRect(.18*S,.55*S-bob,.12*S,.08*S);g.fillRect(.18*S,.63*S-bob,.08*S,.05*S);
- g.fillStyle='#1a1a1a';g.fillRect(.04*S,.48*S-bob,.06*S,.06*S);
- g.fillStyle='#fff';g.fillRect(.05*S,.49*S-bob,.02*S,.02*S);
- g.restore();
- if(m.panicCd>0){g.fillStyle='#ff3030';g.font='bold '+Math.floor(S*.5)+'px system-ui';g.textAlign='center';g.fillText('!',0,-.15*S);g.textAlign='left';}
-}
-
-function drawMob(m,now){
- const x=(m.x-camX)*S,y=(m.y-camY)*S,hf=m.hurt>0,t=now/150+m.id;
- g.save();g.translate(x+pw*S/2,y);g.scale(m.face,1);
- g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(0,ph*S,S*.35,S*.08,0,0,6.283);g.fill();
- if(m.type=='s')drawSkeleton(m,now,hf,t);
- else if(m.type=='c')drawChicken(m,now,hf,t);
- else drawZombie(m,now,hf,t);
- g.restore();
- if(m.hp<m.maxHp*0.7){
-  const bx=x,by=y-S*.28,bw=pw*S,bh=Math.max(3,S*.09),pct=m.hp/m.maxHp;
-  g.fillStyle='rgba(0,0,0,.75)';g.fillRect(bx-1,by-1,bw+2,bh+2);
-  g.fillStyle=pct>0.5?'#4ac04a':(pct>0.25?'#ffd23c':'#e74c3c');
-  g.fillRect(bx,by,bw*pct,bh);
-  g.fillStyle='rgba(255,255,255,.3)';g.fillRect(bx,by,bw*pct,bh/3);
- }
- if(m.burn>0){
-  g.fillStyle='rgba(255,120,0,'+(0.3+Math.random()*0.2)+')';g.fillRect(x,y,pw*S,ph*S);
-  for(let i=0;i<3;i++){
-   const fx=x+Math.random()*pw*S,fy=y+Math.random()*ph*S*.5;
-   g.fillStyle='#ff8c00';g.fillRect(fx,fy,S*.06,S*.1);
-   g.fillStyle='#ffee44';g.fillRect(fx+1,fy+1,S*.03,S*.05);
-  }
- }
-}
-
-// ==================== FX ====================
+// ==================== FX (Efektler) ====================
 function drawFx(t,now){
- for(const m of mobs)if(!m.dead)drawMob(m,now);
- // ... (Oklar, Droplar, Toplar, hedef çizgileri aynı kalacak)
+ for(const m of mobs)if(!m.dead)drawMob(m,now); // entities.js'den gelir
+
  for(const a of arrows){
   const x=(a.x-camX)*S,y=(a.y-camY)*S,ang=Math.atan2(a.vy,a.vx);
   g.save();g.translate(x,y);g.rotate(ang);
@@ -234,7 +120,7 @@ function drawFx(t,now){
  }
 }
 
-// ==================== GÖKYÜZÜ ====================
+// ==================== GÖKYÜZÜ (Dağ hatası düzeltildi) ====================
 function drawSky(){
  const day=todDay;
  const c=mix([11,16,48],[135,206,235],Math.min(1,day*1.6));
@@ -243,6 +129,7 @@ function drawSky(){
  grd.addColorStop(0.7,'rgb('+c.join(',')+')');
  grd.addColorStop(1,'rgb('+c.map(v=>Math.min(255,v+20)).join(',')+')');
  g.fillStyle=grd;g.fillRect(0,0,VW,VH);
+ 
  if(day<0.4){
   const starAlpha=(1-day/0.4)*0.8;
   g.fillStyle='rgba(255,255,255,'+starAlpha+')';
@@ -275,25 +162,23 @@ function drawSky(){
   g.beginPath();g.arc(moonX+8,moonY+6,4,0,6.283);g.fill();
   g.beginPath();g.arc(moonX-4,moonY+9,3,0,6.283);g.fill();
  }
- const mountOff=-camX*.15,mountY=VH*.55-camY*.05;
+ 
+ // Dağ hatası düzeltmesi (Negatif modül operatörü fix)
+ const mountOff=-camX*.15, mountY=VH*.55-camY*.05;
+ const step=VW/6, f=Math.floor(mountOff/step), off=mountOff-f*step;
  g.fillStyle='rgba(80,100,140,'+(day*0.3+0.2)+')';
  g.beginPath();g.moveTo(0,mountY+50);
- for(let i=0;i<8;i++){const mx=(i*VW/6+mountOff)%(VW+200)-100;g.lineTo(mx,mountY-Math.abs(Math.sin(i*1.7))*60)}
+ for(let i=-1;i<=7;i++){
+  const k=i-f;
+  g.lineTo(i*step+off, mountY - Math.abs(Math.sin(k*1.7))*60);
+ }
  g.lineTo(VW,mountY+50);g.closePath();g.fill();
 }
 
-// ==================== ANA ÇİZİM ====================
-function draw(){
- const now=Date.now(),day=todDay;
- drawSky();
- let shakeX=0,shakeY=0;
- if(shakeT>0){const mag=shakeT*30;shakeX=(Math.random()-.5)*mag;shakeY=(Math.random()-.5)*mag}
- g.save();g.translate(shakeX,shakeY);
- const x0=Math.floor(camX),y0=Math.floor(camY),x1=Math.ceil(camX+VW/S),y1=Math.ceil(camY+VH/S);
-
- // ==================== ARKA PLAN (bg) ====================
+// ==================== DÜNYA VE SU AYRIŞTIRMA ====================
+function drawWorld(x0,y0,x1,y1,now,waters){
+ // Arka plan
  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
-  if(!inBounds(x,y))continue;
   const b=bg[y*W+x];
   if(b){
    const qx=Math.floor((x-camX)*S),qy=Math.floor((y-camY)*S);
@@ -301,47 +186,126 @@ function draw(){
    g.fillStyle='rgba(15,20,35,.55)';g.fillRect(qx,qy,S+1,S+1);
   }
  }
-
- // ==================== ÖN PLAN (w) ====================
+ // Ön plan (Su hariç)
  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
-  if(!inBounds(x,y))continue;
   const b=w[y*W+x];
-  if(!b)continue;
-  const qx=Math.floor((x-camX)*S),qy=Math.floor((y-camY)*S);
+  if(!b) continue;
   if(b==43){
-   drawWater(qx,qy,x,y);
-  }else{
-   drawTile(b,qx,qy,x,y);
+   waters.push(Math.floor((x-camX)*S), Math.floor((y-camY)*S), x, y);
+   continue; // Suyu listeye ekle ve çizmeyi atla
+  }
+  drawTile(b,Math.floor((x-camX)*S),Math.floor((y-camY)*S),x,y);
+ }
+}
+
+// ==================== IŞIKLANDIRMA (Lightmap Optimizasyonu) ====================
+const lm=document.createElement('canvas'), lg=lm.getContext('2d');
+function drawLighting(x0,y0,x1,y1){
+ const dark=Math.max(0,.55-todDay*.9);
+ const vis=[];
+ for(const L of lights)if(L[0]>=x0-6&&L[0]<=x1+6&&L[1]>=y0-6&&L[1]<=y1+6)vis.push(L);
+ 
+ let needDark=dark>0;
+ if(!needDark){
+  for(let y=y0;y<=y1&&!needDark;y++){
+   for(let x=x0;x<=x1;x++){
+    if(skyExposed[y*W+x]<15){needDark=true;break}
+   }
   }
  }
+ if(!needDark) return;
 
- // ==================== FX ====================
+ dg.clearRect(0,0,VW,VH);
+ 
+ const sw=x1-x0+1, sh=y1-y0+1;
+ if(lm.width!=sw||lm.height!=sh){lm.width=sw;lm.height=sh}
+ const img=lg.createImageData(sw,sh);
+ let idx=0;
+ 
+ for(let y=y0;y<=y1;y++){
+  const surf=hgt(Math.max(0,Math.min(W-1,Math.floor(x0)))); // Placeholder
+  for(let x=x0;x<=x1;x++){
+   const skl=skyExposed[y*W+x];
+   const lightPct=skl/15;
+   const surface=hgt(x);
+   const depth=Math.max(0,y-surface);
+   const depthDark=Math.min(0.55,depth/130);
+   const tileDark=Math.min(0.98,(1-lightPct)*0.90+depthDark);
+   
+   img.data[idx]=3; img.data[idx+1]=5; img.data[idx+2]=15; img.data[idx+3]=tileDark*255;
+   idx+=4;
+  }
+ }
+ lg.putImageData(img,0,0);
+ 
+ // Yumuşak geçişli karanlık haritasını ekrana bas
+ dg.imageSmoothingEnabled=true;
+ dg.drawImage(lm, (x0-camX)*S, (y0-camY)*S, sw*S, sh*S);
+ dg.imageSmoothingEnabled=false;
+ 
+ // Meşalelerin ışıklarını delik açarak çiz
+ dg.globalCompositeOperation='destination-out';
+ for(const L of vis){
+  const tx=(L[0]+.5-camX)*S,ty=(L[1]+.5-camY)*S,R=L[2]==19?S*4:S*5;
+  dg.drawImage(getLightTex(R,false),tx-R,ty-R);
+ }
+ const pcx=(px+pw/2-camX)*S,pcy=(py+ph/2-camY)*S,pR=S*2;
+ dg.drawImage(getLightTex(pR,false),pcx-pR,pcy-pR);
+ dg.globalCompositeOperation='source-over';
+ g.drawImage(dc,0,0,VW,VH);
+ 
+ // Sıcak glow
+ g.globalCompositeOperation='lighter';g.globalAlpha=.25;
+ for(const L of vis){
+  const tx=(L[0]+.5-camX)*S,ty=(L[1]+.5-camY)*S,R=L[2]==19?S*3:S*3.5;
+  g.drawImage(getLightTex(R,true),tx-R,ty-R);
+ }
+ g.globalAlpha=.12;
+ g.drawImage(getLightTex(pR,true),pcx-pR,pcy-pR);
+ g.globalAlpha=1;g.globalCompositeOperation='source-over';
+}
+
+// ==================== ANA ÇİZİM DÖNGÜSÜ ====================
+function draw(){
+ const now=Date.now();
+ drawSky();
+ 
+ let shakeX=0,shakeY=0;
+ if(shakeT>0){const mag=shakeT*30;shakeX=(Math.random()-.5)*mag;shakeY=(Math.random()-.5)*mag}
+ 
+ g.save();
+ g.translate(shakeX,shakeY);
+ 
+ // Sınırları bir kez hesapla (inBounds optimizasyonu)
+ const x0=Math.max(0, Math.floor(camX));
+ const y0=Math.max(0, Math.floor(camY));
+ const x1=Math.min(W-1, Math.ceil(camX+VW/S));
+ const y1=Math.min(H-1, Math.ceil(camY+VH/S));
+
+ const waters=[];
+
+ // Dünyayı çiz
+ drawWorld(x0,y0,x1,y1,now,waters);
+
+ // Efektleri çiz (Moblar, mermiler)
  drawFx(now/1000,now);
 
- // ==================== OYUNCU ====================
+ // Oyuncuyu çiz
  const X=(px-camX)*S,Y=(py-camY)*S,hurt=hurtT>0;
- const inWaterFlag = inWater(px, py); // Karakter suda mı?
-
  g.fillStyle='rgba(0,0,0,.3)';
  g.beginPath();g.ellipse(X+pw*S/2,Y+ph*S,S*.4,S*.1,0,0,6.283);g.fill();
- 
  g.save();g.translate(X+pw*S/2,Y);g.scale(face,1);
  const walk=Math.sin(anim)*.12*S;
- 
- // BURASI ÖNEMLİ: Eğer suda değilse bacakları çiz
- if(!inWaterFlag){
-  g.fillStyle='#2b2b7c';
-  g.fillRect(-.22*S+walk,1.2*S,.2*S,.6*S);g.fillRect(.02*S-walk,1.2*S,.2*S,.6*S);
-  g.fillStyle='#1a1a5c';
-  g.fillRect(-.22*S+walk,1.7*S,.22*S,.1*S);g.fillRect(.02*S-walk,1.7*S,.22*S,.1*S);
- }
-
+ // Bacaklar (Normal çiz)
+ g.fillStyle='#2b2b7c';
+ g.fillRect(-.22*S+walk,1.2*S,.2*S,.6*S);g.fillRect(.02*S-walk,1.2*S,.2*S,.6*S);
+ g.fillStyle='#1a1a5c';
+ g.fillRect(-.22*S+walk,1.7*S,.22*S,.1*S);g.fillRect(.02*S-walk,1.7*S,.22*S,.1*S);
  // Gövde
  g.fillStyle=hurt?'#ff6666':'#2aa0a8';g.fillRect(-.25*S,.6*S,.5*S,.62*S);
  g.fillStyle=hurt?'#cc4444':'#1a8088';g.fillRect(-.25*S,.9*S,.5*S,.32*S);
  g.fillStyle=hurt?'#ff8888':'#1a8088';g.fillRect(-.15*S,.6*S,.3*S,.08*S);
- 
- // Kol
+ // Kol / Alet
  g.save();g.translate(0,.68*S);g.rotate(armA);
  g.fillStyle='#c68e6a';g.fillRect(0,-.08*S,.55*S,.16*S);
  g.fillStyle='#a06a48';g.fillRect(0,.02*S,.55*S,.04*S);
@@ -365,7 +329,6 @@ function draw(){
   }
  }
  g.restore();
- 
  // Kafa
  g.fillStyle=hurt?'#ff9999':'#f0c090';g.fillRect(-.3*S,0,.6*S,.6*S);
  g.fillStyle='#3a2412';
@@ -376,94 +339,39 @@ function draw(){
  g.fillStyle='#000';g.fillRect(.13*S,.29*S,.05*S,.06*S);g.fillRect(-.12*S,.29*S,.05*S,.06*S);
  g.fillStyle='rgba(255,255,255,.8)';g.fillRect(.11*S,.27*S,.03*S,.03*S);g.fillRect(-.14*S,.27*S,.03*S,.03*S);
  g.fillStyle='#8a4a2a';g.fillRect(-.05*S,.46*S,.1*S,.03*S);
- 
- // Eğer suyun içindeyse vücudunun altına mavi bir ton (su içi hissi) ekle
- if (inWaterFlag) {
-  g.fillStyle = 'rgba(60, 150, 255, 0.4)';
-  g.fillRect(-.35*S, .2*S, .7*S, 1.5*S);
- }
-
  g.restore();
 
- // ==================== KARANLIK ====================
- const dark=Math.max(0,.55-day*.9);
- const vis=[];
- for(const L of lights)if(L[0]>=x0-6&&L[0]<=x1+6&&L[1]>=y0-6&&L[1]<=y1+6)vis.push(L);
- let needDark=dark>0;
- if(!needDark){
-  for(let y=y0;y<=y1&&!needDark;y++)for(let x=x0;x<=x1;x++){
-   if(!inBounds(x,y))continue;
-   if(skyExposed[y*W+x]<15){needDark=true;break}
-  }
- }
- if(needDark){
-  dg.clearRect(0,0,VW,VH);
-  if(dark>0){dg.fillStyle='rgba(10,15,35,'+dark*.92+')';dg.fillRect(0,0,VW,VH)}
-  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
-   if(!inBounds(x,y))continue;
-   const skl=skyExposed[y*W+x];
-   const lightPct=skl/15;
-   const surf=hgt(x);
-   const depth=Math.max(0,y-surf);
-   const depthDark=Math.min(0.55,depth/130);
-   const tileDark=Math.min(0.98,(1-lightPct)*0.90+depthDark);
-   if(tileDark>0.02){
-    const qx=Math.floor((x-camX)*S),qy=Math.floor((y-camY)*S);
-    dg.fillStyle='rgba(3,5,15,'+tileDark.toFixed(3)+')';
-    dg.fillRect(qx,qy,S+1,S+1);
-   }
-  }
-  dg.globalCompositeOperation='destination-out';
-  for(const L of vis){
-   const tx=(L[0]+.5-camX)*S,ty=(L[1]+.5-camY)*S,R=L[2]==19?S*4:S*5;
-   dg.drawImage(getLightTex(R,false),tx-R,ty-R);
-  }
-  const pcx=(px+pw/2-camX)*S,pcy=(py+ph/2-camY)*S,pR=S*2;
-  dg.drawImage(getLightTex(pR,false),pcx-pR,pcy-pR);
-  dg.globalCompositeOperation='source-over';
-  g.drawImage(dc,0,0,VW,VH);
-  g.globalCompositeOperation='lighter';g.globalAlpha=.25;
-  for(const L of vis){
-   const tx=(L[0]+.5-camX)*S,ty=(L[1]+.5-camY)*S,R=L[2]==19?S*3:S*3.5;
-   g.drawImage(getLightTex(R,true),tx-R,ty-R);
-  }
-  g.globalAlpha=.12;
-  g.drawImage(getLightTex(pR,true),pcx-pR,pcy-pR);
-  g.globalAlpha=1;g.globalCompositeOperation='source-over';
+ // Suyu Çiz (Oyuncunun üstüne, yarı saydam)
+ for(let i=0; i<waters.length; i+=4){
+  drawWater(waters[i], waters[i+1], waters[i+2], waters[i+3], now);
  }
 
- // ==================== VURUŞ FLASH ====================
+ g.restore(); // Shake geri al
+
+ // Karanlık / Işık Sistemi (Shake dışında, kenarlar boş kalmasın)
+ drawLighting(x0,y0,x1,y1);
+
+ // Arayüz ve HUD Efektleri
  if(hurtT>0.2){g.fillStyle='rgba(255,200,200,'+(hurtT-0.2)*3*.4+')';g.fillRect(0,0,VW,VH)}
-
- // ==================== REGEN AURA ====================
  if(regenTimer<=0&&playerHp<playerMaxHp){
   const grd=g.createRadialGradient(VW/2,VH/2,VH*0.35,VW/2,VH/2,VH*0.75);
   grd.addColorStop(0,'rgba(80,200,100,0)');grd.addColorStop(1,'rgba(80,200,100,.1)');
   g.fillStyle=grd;g.fillRect(0,0,VW,VH);
  }
-
- // ==================== HASAR VİNYETİ ====================
  if(hurtT>0||playerHp<=6){
   const intensity=Math.max(hurtT*2,playerHp<=6?(1-playerHp/6)*0.45:0);
   const grd=g.createRadialGradient(VW/2,VH/2,VH*0.3,VW/2,VH/2,VH*0.7);
   grd.addColorStop(0,'rgba(200,0,0,0)');grd.addColorStop(1,'rgba(200,0,0,'+intensity+')');
   g.fillStyle=grd;g.fillRect(0,0,VW,VH);
  }
-
- // ==================== FLOATING TEXT ====================
  g.font='bold 14px system-ui';g.textAlign='center';g.lineWidth=3;g.strokeStyle='#000';
  for(const f of fl){
   const fx=(f.x-camX)*S,fy=(f.y-camY)*S;
-  g.fillStyle='rgba(255,255,255,'+Math.min(1,f.t*2)+')';
-  g.strokeText(f.s,fx,fy);g.fillText(f.s,fx,fy);
+  g.fillStyle='rgba(255,255,255,'+Math.min(1,f.t*2)+')';g.strokeText(f.s,fx,fy);g.fillText(f.s,fx,fy);
  }
-
- // ==================== MINING HUD ====================
  if(mine&&mine.p>0){
   const b=mine.layer=='bg'?getBg(mine.tx,mine.ty):get(mine.tx,mine.ty);
   if(b){mh.style.display='block';mn.textContent=NAME[b]||'';mfill.style.width=(mine.p*100)+'%'}
   else mh.style.display='none';
  }else mh.style.display='none';
-
- g.restore();
 }
