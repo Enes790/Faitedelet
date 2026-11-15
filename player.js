@@ -23,7 +23,9 @@ function aimTargets(){
   let k=-1,layer='w';
   for(let i=0;i<cells.length;i++){
    const c=cells[i];
-   if(get(c[0],c[1])){k=i;layer='w';break}
+   const gb=get(c[0],c[1]);
+   // Su nişanı engellemez: suyun altındaki/ötesindeki bloklar hedeflenebilir
+   if(gb&&gb!==43){k=i;layer='w';break}
    if(getBg(c[0],c[1])){k=i;layer='bg';break}
   }
   if(k>=0&&k<hk){hk=k;hitC=cells[k];hitLayer=layer}
@@ -91,9 +93,9 @@ function breakB(tx,ty,layer){
 
  if(b==14||b==19)lights=lights.filter(L=>!(L[0]==tx&&L[1]==ty));
 
- // SU KIRILMAZ (Kovayla alınabilir ileride)
+ // SU KIRILMAZ (Kovayla alınabilir ileride): bloğu geri koy
  if(b==43){
-  updateSkyColumn(tx);
+  w[i]=43;
   return;
  }
 
@@ -110,7 +112,7 @@ function breakB(tx,ty,layer){
   if(Math.random()<0.1)loot.push([36,1]); // Elmas (%10)
   if(Math.random()<0.05)loot.push([21,1]); // Demir Kılıç (%5)
   if(loot.length===0)loot.push([8,1]); // Boş çıkmasın
-  
+
   loot.forEach(([itemId,amount])=>{
    for(let k=0;k<amount;k++){
     drops.push({x:tx+.5+(Math.random()-.5)*.6,y:ty+.5,vy:-3-Math.random()*2,b:itemId,age:0});
@@ -152,8 +154,11 @@ function chip(tx,ty,c){
 function placeAt(tx,ty){
  const s=slots[sel];
  if(!s||!PLACE.has(s.id))return false;
- if(!inBounds(tx,ty)||get(tx,ty))return false;
- 
+ if(!inBounds(tx,ty))return false;
+ // Boş yere ya da suyun üstüne/içine koyulabilir (su yer değiştirir: köprü/dolgu)
+ const cur=get(tx,ty);
+ if(cur&&cur!==43)return false;
+
  // KAKTÜS KONTROLÜ: Sadece kum (6) üzerine dikilebilir
  if(s.id===31){
   if(get(tx,ty+1)!==6){
@@ -165,11 +170,11 @@ function placeAt(tx,ty){
  const dx=tx+.5-(px+pw/2),dy=ty+.5-(py+ph/2);
  if(dx*dx+dy*dy>RD2)return false;
  if(!NONSOLID.has(s.id)&&overlapsPl(tx,ty))return false;
- 
+
  w[ty*W+tx]=s.id;
  if(s.id==14||s.id==19)lights.push([tx,ty,s.id]);
  updateSkyColumn(tx);
- 
+
  s.n--;
  if(!s.n)slots[sel]=null;
  pops.push({x:tx,y:ty,t:.2,c:'#9f9'});
@@ -205,6 +210,7 @@ function tryFertilize(){
 function useItem(){
  const s=slots[sel];
  if(!s)return false;
+ if(FOOD[s.id]!==undefined)return eatSel(); // yemek ye
  if(s.id==23)return tryFertilize();
  return AIM.place?placeAt(AIM.place[0],AIM.place[1]):false;
 }
@@ -281,7 +287,7 @@ function mineStep(dt,busy){
   if(b&&mine.ty<H-1&&dx*dx+dy*dy<=RD2){
    if(needsTool(b)){
     mine.p=0;
-    say('Taş kazma gerekli');
+    say(b==35?'Demir kazma gerekli':'Taş kazma gerekli');
    }else if(b==43){
     mine.p=0; // Su kazılmaz
    }else{
@@ -291,6 +297,7 @@ function mineStep(dt,busy){
     if(chipT<=0){chip(mine.tx,mine.ty,BASE[b]);chipT=.1}
     if(mine.p>=1){
      breakB(mine.tx,mine.ty,mine.layer);
+     onBlockBroken(b); // aleti yıprat
      mine.p=0;on=false;
     }
    }
@@ -329,7 +336,7 @@ function mineStep(dt,busy){
   const dx=cx-o.x,dy=cy-o.y,l=Math.hypot(dx,dy)||1,ok=room(o.b);
   if(ok&&o.age>.5&&l<3){o.vy=0;o.x+=dx/l*9*dt;o.y+=dy/l*9*dt}
   if(ok&&l<.7&&o.age>.3){
-   addItem(o.b,1);
+   addItem(o.b,1,o.d); // aletlerin kalan dayanıklılığı korunur
    fl.push({x:o.x,y:o.y-.3,t:1,s:'+1 '+NAME[o.b]});
    return false;
   }
