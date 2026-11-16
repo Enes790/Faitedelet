@@ -199,19 +199,8 @@ let last=performance.now();
 function loop(n){
  const dt=Math.min(.05,(n-last)/1000);
  last=n;
- try{
-  g.setTransform(dpr,0,0,dpr,0,0);
-  g.globalAlpha=1;g.globalCompositeOperation='source-over';
-  dg.globalCompositeOperation='source-over';
-  update(dt);
-  draw();
- }catch(e){
-  g.setTransform(dpr,0,0,dpr,0,0);
-  g.globalAlpha=1;g.globalCompositeOperation='source-over';
-  g.fillStyle='rgba(0,0,0,.85)';g.fillRect(0,0,VW,64);
-  g.fillStyle='#ff6b6b';g.font='12px monospace';g.textAlign='left';
-  g.fillText(String(e.message).slice(0,70),8,22);
-  g.fillText(String((e.stack||'').split('\n')[1]||'').trim().slice(-70),8,42);
- }
+ update(dt);
+ draw();
  requestAnimationFrame(loop);
 }
+requestAnimationFrame(loop);
