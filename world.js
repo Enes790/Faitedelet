@@ -262,7 +262,7 @@ function generateWorld(seedVal){
   plantTree(x,h,3+Math.floor(Math.random()*2));
  }
 
- // 4. Kaktüsler (kum üzerine)
+ // 4. Kaktüsler (kum üzerinde)
  for(let i=0;i<Math.floor(W*0.02);i++){
   const x=Math.floor(Math.random()*W);
   const surf=hgt(x);
@@ -272,6 +272,18 @@ function generateWorld(seedVal){
    if(surf-j>=0&&w[(surf-j)*W+x]===0){
     w[(surf-j)*W+x]=31;
    }
+  }
+ }
+
+ // 4b. Çakıl Taşı (su kenarlarında ve kumdan oluşan bölgelerde)
+ for(let i=0;i<Math.floor(W*0.03);i++){
+  const x=Math.floor(Math.random()*W);
+  const surf=hgt(x);
+  if(w[surf*W+x]===6 && Math.random()<0.5){
+   w[(surf+1)*W+x]=59;
+  }
+  if(w[surf*W+x]===43 && surf>0 && w[(surf-1)*W+x]===3){
+   w[(surf-1)*W+x]=59;
   }
  }
 
@@ -300,7 +312,8 @@ function generateWorld(seedVal){
  }
  scatter(8,240,3,4,8);       // Kömür
  scatter(15,180,8,2,6);      // Demir
- scatter(35,60,22,2,5);      // Elmas (daha sık: 15 -> 60 damar, daha sığ, daha büyük)
+ scatter(35,60,22,2,5);      // Elmas
+ scatter(53,40,15,3,6);      // Altın cevheri (derinlerde, demirden çok daha az)
 
  // 6. Terk edilmiş ocak kulübeleri (Göl ve Engebeli Arazi Çakışma Kontrolü)
  function placeForge(cx){
@@ -714,6 +727,41 @@ function tile(b,x,y,X,Y,g){
    g.fillRect(x+S*.75,y+S*.4,S*.1,S*.1);
    g.fillRect(x+S*.15,y+S*.7,S*.1,S*.1);
    g.fillRect(x+S*.75,y+S*.7,S*.1,S*.1);
+   return;
+ }
+ // ALTIN CEVHERI
+ if(b==53){
+   g.fillStyle='#6a6e73';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#8b8f96';g.fillRect(x+1,y+1,S-1,S-1);
+   for(let n=0;n<6;n++){
+     const r=(((X*973917+Y*567483)^(n*782919))>>>0);
+     const ox=4+(r&7)/8*(S-12),oy=4+((r>>3)&7)/8*(S-12),sz=3+(r&3);
+     g.fillStyle='#d4af37';g.fillRect(x+ox,y+oy,sz,sz);
+     g.fillStyle='#ffd700';g.fillRect(x+ox+1,y+oy+1,sz-2,sz-2);
+     g.fillStyle='#ffe066';g.fillRect(x+ox,y+oy,1,1);
+     g.fillStyle='#a06a00';g.fillRect(x+ox+sz-1,y+oy+sz-1,1,1);
+   }
+   return;
+ }
+ // ALTIN BLOK
+ if(b==55){
+   g.fillStyle='#d4af37';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#ffd700';g.fillRect(x+2,y+2,S-4,S-4);
+   g.fillStyle='#ffe066';g.fillRect(x+4,y+4,4,4);g.fillRect(x+S-8,y+4,4,4);
+   g.fillRect(x+4,y+S-8,4,4);g.fillRect(x+S-8,y+S-8,4,4);
+   g.fillStyle='rgba(255,255,255,.3)';g.fillRect(x+2,y+2,S-4,2);g.fillRect(x+2,y+2,2,S-4);
+   return;
+ }
+ // CAKIL TASI
+ if(b==59){
+   g.fillStyle='#b8a868';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#c9b878';g.fillRect(x+1,y+1,S-1,S-1);
+   for(let n=0;n<12;n++){
+     const r=(((X*374761393+Y*668265263)^(n*1274126177))>>>0);
+     const ox=(r&7)/8*S*.9,oy=((r>>3)&7)/8*S*.9,sz=1+(r&1);
+     g.fillStyle=n%3===0?'#a09070':(n%3===1?'#d8c8a8':'#e0d0b0');
+     g.fillRect(x+ox,y+oy,sz,sz);
+   }
    return;
  }
  // FALLBACK

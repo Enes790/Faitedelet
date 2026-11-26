@@ -134,6 +134,17 @@ function breakB(tx,ty,layer){
   shakeT=0.08;buzz(14);
   return;
  }
+ // Altın Blok: Kırınca 9 altın düşür
+ if(b==55){
+  for(let k=0;k<9;k++){
+   drops.push({x:tx+.5+(Math.random()-.5)*.6,y:ty+.5,vy:-3-Math.random()*2,b:54,age:0});
+  }
+  burst(tx+.5,ty+.5,14,'#ffd700',5);
+  pops.push({x:tx,y:ty,t:.28,c:'#ffd700'});
+  updateSkyColumn(tx);
+  shakeT=0.08;buzz(14);
+  return;
+ }
 
  // Sandık: Kırınca loot düşür
  if(b==47){
@@ -168,11 +179,26 @@ function breakB(tx,ty,layer){
   return;
  }
 
+ // Çakıl Taşı: %25 ihtimalle Sileç düşür
+ if(b==59){
+  drops.push({x:tx+.5,y:ty+.5,vy:-3,b:59,age:0});
+  if(Math.random()<0.25){
+   drops.push({x:tx+.5,y:ty+.5,vy:-3,b:61,age:0});
+   fl.push({x:tx+.5,y:ty+.5,t:1,s:'Sileç!',color:'#a0a0a0'});
+  }
+  burst(tx+.5,ty+.5,14,'#b8a868',5);
+  pops.push({x:tx,y:ty,t:.28,c:'#b8a868'});
+  updateSkyColumn(tx);
+  shakeT=0.08;buzz(14);
+  return;
+ }
+
  // Normal drop
  let d=b;
  if(b==1)d=2;
  else if(b==15)d=16;
  else if(b==35)d=36; // Elmas Cevheri -> Elmas
+ else if(b==53)d=54; // Altın Cevheri -> Altın
  drops.push({x:tx+.5,y:ty+.5,vy:-3,b:d,age:0});
  burst(tx+.5,ty+.5,14,BASE[b],5);
  pops.push({x:tx,y:ty,t:.28,c:BASE[b]});
@@ -267,6 +293,28 @@ function useItem(){
    return true;
   }
  }
+
+ // ÇAKMAK TASI: Yakında blok yoksa sadece etkileşim, fırın açmaz
+ if(s.id==60){
+  fl.push({x:px+pw/2,y:py-.3,t:1.2,s:'Çakmak taşı hazır',color:'#ff6f00'});
+  buzz(14);
+  return true;
+ }
+
+ // OLTA: Su üzerinde kullanıldığında balık tutma başlar
+ if(s.id==62){
+  const cx=Math.floor(px+pw/2),cy=Math.floor(py+ph/2);
+  if(get(cx,cy+1)===43){
+   fishing=2;fishingTx=cx;fishingTy=cy+1;
+   fl.push({x:px+pw/2,y:py-.3,t:1,s:'Olta atıldı...',color:'#4a90e0'});
+   buzz(14);
+   return true;
+  }else{
+   say('Suya bakıp kullan');
+   return false;
+  }
+ }
+
  return AIM.place?placeAt(AIM.place[0],AIM.place[1]):false;
 }
 
@@ -314,6 +362,7 @@ function updateProjectiles(dt){
    if(m.dead)continue;
    if(p.x>m.x&&p.x<m.x+pw&&p.y>m.y&&p.y<m.y+ph){
     if(p.type==24)glassBurst(p.x,p.y);
+    else if(p.type==58)hitMob(m,2,0.8); // Ok: az hasar
     else hitMob(m,3,1.2);
     hit=true;
     break;
@@ -323,7 +372,9 @@ function updateProjectiles(dt){
   const tx=Math.floor(p.x),ty=Math.floor(p.y);
   if(get(tx,ty)){
    if(p.type==24)glassBurst(p.x,p.y);
-   else{
+   else if(p.type==58){
+    burst(p.x,p.y,4,'#a0a0a0',4); // Ok duvara çarptığında parçalanır
+   }else{
     if(ty<H-1)breakB(tx,ty,'w');
     burst(p.x,p.y,8,'#ffd23c',6);
    }

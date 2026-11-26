@@ -135,8 +135,36 @@ function update(dt){
  const mt=actHeld?mobTarget():null;
  if(mt&&attackCd<=0)strike(mt);
 
- // Kazma
- mineStep(dt,!!mt);
+ // Yay yükleme
+ const s=slots[sel];
+ if(s&&s.id==57&&actHeld){
+  bowCharging=true;
+  bowCharge=Math.min(1,bowCharge+dt*1.5);
+ }else if(bowCharging&&!actHeld){
+  // Yay bırakıldı - ok at
+  bowCharging=false;
+  if(bowCharge>0.3){
+   const arrowCount=count(58);
+   if(arrowCount>0){
+    take(58,1);
+    projectiles.push({
+     x:px+pw/2,y:py+ph/2,
+     vx:aimX*14,vy:aimY*14-2,
+     age:0,type:58,spin:0
+    });
+    fl.push({x:px+pw/2,y:py-.3,t:1,s:'Ok fırlatıldı',color:'#a0a0a0'});
+    buzz(10);
+   }else{
+    say('Ok yok');
+   }
+  }
+  bowCharge=0;
+ }else if(!actHeld){
+  bowCharging=false;bowCharge=0;
+ }
+
+ // Kazma (yay seçiliyken kazma devre dışı)
+ mineStep(dt,!!mt||(slots[sel]&&slots[sel].id==57));
 
  // Kaktüs hasarı kontrolü
  checkCactusDamage();
@@ -187,6 +215,22 @@ function update(dt){
      break;
     }
    }
+  }
+ }
+
+// Olta sistemi: su üzerinde bekletildiğinde balık düşür
+ if(fishing>0){
+  fishing-=dt;
+  if(fishing<=0){
+   const cx=fishingTx,cy=fishingTy;
+   if(get(cx,cy)===43 && Math.random()<0.6){
+    addItem(49,1); // Ham balık
+    fl.push({x:px+pw/2,y:py-.3,t:1.2,s:'Balık tutuldu!',color:'#4a90e0'});
+    buzz(14);
+   }else{
+    say('Balık kaçtı');
+   }
+   fishing=0;
   }
  }
 

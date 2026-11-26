@@ -36,11 +36,20 @@ const furnaceSlot=new Array(3).fill(null); // [0]=yakıt, [1]=girdi, [2]=çıkt�
 let furnaceCook=0;      // pişirme ilerlemesi 0-1
 let furnaceCookTime=0;  // gereken süre (saniye)
 let furnaceActive=false;
-let furnaceTx=0,furnaceTy=0; // fırının世界 konumu
+let furnaceTx=0,furnaceTy=0; // fırının dünya konumu
 const FUEL_BURN={8:80,4:15,6:5}; // kömür=80sn, odun=15sn, kum=5sn
 const COOK_RECIPES={
  49:{out:50,time:10},   // ham balık -> pişmiş balık, 10sn
 };
+
+// Yay ve ok sistemi
+let bowCharge=0;       // 0-1 yükleme oranı
+let bowCharging=false; // yay çekiliyor mu
+let bowChargeStart=0;  // başlangıç zamanı
+
+// Balık tutma (olta)
+let fishing=0;         // 0=-1 değil, >0 balık tutuluyor
+let fishingTx=0,fishingTy=0; // olta konumu
 
 // ==================== OYUN DURUMU ====================
 let lights=[];

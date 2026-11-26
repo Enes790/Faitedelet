@@ -317,7 +317,7 @@ function draw(){
   g.fillStyle=bladeC;g.fillRect(.45*S,-.06*S,.5*S,.12*S);
   g.fillStyle=bladeShine;g.fillRect(.45*S,-.06*S,.5*S,.04*S);
   g.fillStyle='#8a6a35';g.fillRect(.42*S,-.08*S,.06*S,.16*S);
- }else{
+  }else{
   const tl=pickLv();
   if(tl){
    const headColor=tl==4?'#6ee8f0':tl==3?'#e0e0e0':tl==2?'#c0c0c0':'#b8864b';
@@ -327,6 +327,21 @@ function draw(){
    g.fillStyle=shadeColor;g.fillRect(.5*S,.16*S,.14*S,.08*S);
    if(tl>=3){g.fillStyle='#fff';g.fillRect(.5*S,-.24*S,.14*S,.06*S);}
   }
+ }
+ // Yay çizimi
+ const bow=slots[sel]&&slots[sel].id==57;
+ if(bow){
+  const charge=bowCharge;
+  g.fillStyle='#8b4513';g.fillRect(.3*S,-.06*S,.08*S,.12*S); // kol
+  g.strokeStyle='#5d4037';g.lineWidth=2;g.beginPath();
+  g.moveTo(.38*S,-.06*S);g.quadraticCurveTo(.5*S,-charge*S*.2,.38*S,.06*S);g.stroke();
+  g.fillStyle='#ff6f00';g.fillRect(.35*S,-charge*S*.15-.02*S,.04*S,charge*S*.3); // yay ipi
+ }
+ // Olta çizimi
+ const rod=slots[sel]&&slots[sel].id==62;
+ if(rod){
+  g.fillStyle='#8b4513';g.fillRect(.25*S,-.04*S,.06*S,.15*S); // sap
+  g.fillStyle='#5d4037';g.fillRect(.3*S,-.02*S,.12*S,.04*S); // kanca
  }
  g.restore();
  // Kafa
