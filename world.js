@@ -21,7 +21,7 @@ function plantTree(x,h,t){
 
 // ==================== YAPI ŞABLON SİSTEMİ ====================
 // Harf -> blok: ' ' hava, '#' taş, 'P' kalas, 'T' meşale, 'V' vazo, 'I' demir, 'D' elmas cevheri, 'F' döküm, 'W' odun, '.' dokunma
-const LEG={' ':0,'#':3,'P':7,'T':14,'V':42,'I':15,'D':35,'F':19,'W':4};
+const LEG={' ':0,'#':3,'P':7,'T':14,'V':42,'I':15,'D':35,'F':19,'W':4,'C':47,'S':48};
 
 function stamp(rows,x0,y0){
  for(let r=0;r<rows.length;r++)for(let c=0;c<rows[r].length;c++){
@@ -60,7 +60,7 @@ const DUNGEON=[
  '#############',
  '#T         T#',
  '#     V     #',
- '#   PPPPP   #',
+ '#   PCSPP   #',
  '             ',
  ' V   DDD   V ',
  '#############'
@@ -113,7 +113,7 @@ function placeMine(){
    const x=sx+dir*i;
    for(let dy=-2;dy<=0;dy++)w[(sy+dy)*W+x]=0;
    // zemin: bazı yerlerde kalas
-   if(w[(sy+1)*W+x]===3&&i%6<2)w[(sy+1)*W+x]=7;
+   if(w[(sy+1)*W+x]===3&&i%6<2&&w[(sy+2)*W+x]!==0)w[(sy+1)*W+x]=7;
    // destek kirişleri (arka planda, geçişi engellemez)
    if(i%6===0){
     for(let dy=-2;dy<=0;dy++)bg[(sy+dy)*W+x]=4;
@@ -134,7 +134,7 @@ function placeMine(){
    if(k<5){for(let dy=-3;dy<=0;dy++)w[(sy+dy)*W+x]=0}
   }
   const vx=sx+dir*(len+2);
-  w[sy*W+vx]=42;
+  w[sy*W+vx]=47; // Sandık (maden kuyusu ödülü)
   const tx=sx+dir*(len+1);
   w[(sy-3)*W+tx]=14;
   // duvarda elmas cevheri
@@ -670,6 +670,26 @@ function tile(b,x,y,X,Y,g){
    g.fillStyle='#1a5a9a';g.fillRect(x,y,S+1,S+1);
    g.fillStyle='#2a7ac0';g.fillRect(x+1,y+1,S-1,S-1);
    g.fillStyle='#3a8ad0';g.fillRect(x+2,y+2,S-3,S-3);
+   return;
+ }
+ // SANDIK
+ if(b==47){
+   g.fillStyle='#5d4037';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#8d6e63';g.fillRect(x+2,y+2,S-3,S-3);
+   g.fillStyle='#3e2723';g.fillRect(x+S*.25,y+S*.25,S*.5,S*.5);
+   g.fillStyle='#5d4037';g.fillRect(x+S*.4,y+S*.45,S*.2,S*.05);
+   g.fillStyle='#4e342e';g.fillRect(x+1,y+S-2,S-2,1);
+   g.fillStyle='#4e342e';g.fillRect(x+S-2,y+1,1,S-2);
+   return;
+ }
+ // MOB URETICI (Spawner)
+ if(b==48){
+   g.fillStyle='#222';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#444';g.fillRect(x+2,y+2,S-3,S-3);
+   g.fillStyle='#666';g.fillRect(x+S*.25,y+S*.25,S*.5,S*.5);
+   g.fillStyle='#888';g.fillRect(x+S*.4,y+S*.4,S*.2,S*.2);
+   const spin=(Date.now()/200)%6.28;
+   g.fillStyle='#f44336';g.fillRect(x+S*.45+Math.cos(spin)*S*.08,y+S*.45+Math.sin(spin)*S*.08,S*.1,S*.1);
    return;
  }
  // FALLBACK

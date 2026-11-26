@@ -135,6 +135,39 @@ function breakB(tx,ty,layer){
   return;
  }
 
+ // Sandık: Kırınca loot düşür
+ if(b==47){
+  const loot=[];
+  if(Math.random()<0.7)loot.push([8,1+Math.floor(Math.random()*3)]); // Kömür
+  if(Math.random()<0.5)loot.push([16,1]); // Demir
+  if(Math.random()<0.4)loot.push([36,1]); // Elmas
+  if(Math.random()<0.3)loot.push([21,1]); // Demir Kılıç
+  if(Math.random()<0.2)loot.push([41,1]); // Elmas Kılıç
+  if(Math.random()<0.15)loot.push([20,1]); // Cevher Topu
+  if(Math.random()<0.1)loot.push([24,1]); // Cam Topu
+  if(loot.length===0)loot.push([8,1]);
+  loot.forEach(([itemId,amount])=>{
+   for(let k=0;k<amount;k++){
+    drops.push({x:tx+.5+(Math.random()-.5)*.6,y:ty+.5,vy:-3-Math.random()*2,b:itemId,age:0});
+   }
+  });
+  burst(tx+.5,ty+.5,14,'#8b5a2b',6);
+  pops.push({x:tx,y:ty,t:.28,c:'#8b5a2b'});
+  updateSkyColumn(tx);
+  shakeT=0.08;buzz(14);
+  return;
+ }
+
+ // Mob Üretici: Kırınca kendini düşür
+ if(b==48){
+  drops.push({x:tx+.5,y:ty+.5,vy:-3,b:48,age:0});
+  burst(tx+.5,ty+.5,14,'#555',6);
+  pops.push({x:tx,y:ty,t:.28,c:'#555'});
+  updateSkyColumn(tx);
+  shakeT=0.08;buzz(14);
+  return;
+ }
+
  // Normal drop
  let d=b;
  if(b==1)d=2;

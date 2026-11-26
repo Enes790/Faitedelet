@@ -13,7 +13,8 @@ const NAME={
  38:'Elmas kazma',39:'Elmas balta',40:'Elmas kürek',41:'Elmas kılıç',
  42:'Toprak Vazo',
  43:'Su',
- 44:'Tahta Kılıç',45:'Taş Kılıç',46:'Pişmiş Tavuk'
+ 44:'Tahta Kılıç',45:'Taş Kılıç',46:'Pişmiş Tavuk',
+ 47:'Sandık',48:'Mob Üretici'
 };
 
 const IC={
@@ -40,7 +41,8 @@ const GL={
  36:'💎',37:'💎',38:'⛏',39:'🪓',40:'⚒',41:'🗡',
  42:'🏺',
  43:'💧',
- 44:'🗡',45:'🗡',46:'🍗'
+ 44:'🗡',45:'🗡',46:'🍗',
+ 47:'📦',48:'🔥'
 };
 
 // [çıktı, adet, {malzeme:adet}, dökümGerekir]
@@ -75,10 +77,10 @@ const REC=[
 
 const HARD={
  1:1.0,2:1.0,3:5.0,4:2.2,5:0.5,6:1.2,7:2.2,8:6.0,14:0.6,15:7.5,19:5.0,
- 31:0.5,35:12.0,37:8.0,42:0.8,43:0.5
+ 31:0.5,35:12.0,37:8.0,42:0.8,43:0.5,47:1.0,48:10.0
 };
 
-const PLACE=new Set([2,3,4,5,6,7,8,14,19,31,37]);
+const PLACE=new Set([2,3,4,5,6,7,8,14,19,31,37,47,48]);
 
 // ==================== DAYANIKLILIK ====================
 // Aletlerin azami kullanım sayısı (malzemeye göre)

@@ -186,9 +186,7 @@ function update(dt){
   }
  }
 
- // Mobları güncelle
- updateMobs(dt);
- updateArrows(dt);
+ // Mob Üretici (Spawner): Yakındaki 48 bloklarından mob doğur\n let spawnerTimer=0;\n spawnerTimer+=dt;\n if(spawnerTimer>2){\n  spawnerTimer=0;\n  const pcx=px+pw/2,pcy=py+ph/2;\n  let totalMobs=mobs.filter(m=>!m.dead).length;\n  if(totalMobs<16){\n   for(let y=Math.max(0,Math.floor(pcy)-6);y<=Math.min(H-1,Math.floor(pcy)+6)&&totalMobs<16;y++){\n    for(let x=Math.max(0,Math.floor(pcx)-6);x<=Math.min(W-1,Math.floor(pcx)+6)&&totalMobs<16;x++){\n     if(get(x,y)==48){\n      const spawnY=y-1;\n      if(!get(x,spawnY)&&!getBg(x,spawnY)&&solid(x,spawnY+1)){\n       const type=Math.random()<0.5?'z':'s';\n       mobs.push(newMob(type,x+0.15,spawnY));\n       totalMobs++;\n      }\n     }\n    }\n   }\n  }\n }\n\n // Mobları güncelle\n updateMobs(dt);\n updateArrows(dt);
  
  // Hasar titremesi
  hurtT=Math.max(0,hurtT-dt);
