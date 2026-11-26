@@ -245,7 +245,15 @@ function useItem(){
  if(!s)return false;
  if(FOOD[s.id]!==undefined)return eatSel(); // yemek ye
  if(s.id==23)return tryFertilize();
- // FIRIN: Ham balığı yakin bir firin icinde pişir
+
+ // FIRIN veya ÇALIŞMA MASASINA tıklandıysa UI aç
+ if(AIM.hit&&AIM.hitLayer=='w'){
+  const b=get(AIM.hit[0],AIM.hit[1]);
+  if(b==51){openFurnaceUI(AIM.hit[0],AIM.hit[1]);return true}
+  if(b==52){craftTableMode=true;refresh();return true}
+ }
+
+ // FIRIN: Elinde ham balık varsa ve yakında fırın varsa pişir
  if(s.id==49){
   const cx=Math.floor(px+pw/2),cy=Math.floor(py+ph/2);
   let nearFurnace=false;
@@ -260,6 +268,13 @@ function useItem(){
   }
  }
  return AIM.place?placeAt(AIM.place[0],AIM.place[1]):false;
+}
+
+function openFurnaceUI(tx,ty){
+ furnaceTx=tx;furnaceTy=ty;
+ pan.style.display='block';
+ mv=null;craftHold=null;craftResult=null;craftTableMode=false;
+ renderPan();
 }
 
 // ==================== TOPLAR ====================

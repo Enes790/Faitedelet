@@ -28,6 +28,20 @@ const craftGrid=new Array(9).fill(null);
 let craftHold=null;   // gridden alınan eşya
 let craftResult=null; // {id,n,i} recipe sonucu
 
+// Çalışma Masası modu: true = masa ile 3x3, false = envanter 2x2
+let craftTableMode=false;
+
+// Fırın sistemi
+const furnaceSlot=new Array(3).fill(null); // [0]=yakıt, [1]=girdi, [2]=çıktı
+let furnaceCook=0;      // pişirme ilerlemesi 0-1
+let furnaceCookTime=0;  // gereken süre (saniye)
+let furnaceActive=false;
+let furnaceTx=0,furnaceTy=0; // fırının世界 konumu
+const FUEL_BURN={8:80,4:15,6:5}; // kömür=80sn, odun=15sn, kum=5sn
+const COOK_RECIPES={
+ 49:{out:50,time:10},   // ham balık -> pişmiş balık, 10sn
+};
+
 // ==================== OYUN DURUMU ====================
 let lights=[];
 const skyExposed=new Uint8Array(W*H);

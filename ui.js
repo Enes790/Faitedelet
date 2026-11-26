@@ -77,6 +77,39 @@ function renderPan(){
 
  let h='<h3>Envanter <u id="px">Kapat</u> <u id="newgame" style="color:#ff6b6b">Yeni Oyun</u></h3>';
 
+ // FIRIN UI
+ if(furnaceTx!==0||furnaceTy!==0){
+  h+='<h3>Fırın <u id="closeFurnace">Kapat</u></h3>';
+  h+='<div style="display:flex;gap:12px;align-items:center;margin:8px 0">';
+  // Yakıt yuvası
+  h+='<div style="text-align:center">';
+  h+='<div style="font-size:11px;opacity:.8">YAKIT</div>';
+  h+='<div class="cell" data-fs="0" style="position:relative">'+(furnaceSlot[0]?icon(furnaceSlot[0].id)+(furnaceSlot[0].n>1?'<span class="n">×'+furnaceSlot[0].n+'</span>':''):'')+'</div>';
+  h+='</div>';
+  // Ok
+  h+='<div style="font-size:20px;opacity:.5">→</div>';
+  // Girdi
+  h+='<div style="text-align:center">';
+  h+='<div style="font-size:11px;opacity:.8">GİRDİ</div>';
+  h+='<div class="cell" data-fs="1" style="position:relative">'+(furnaceSlot[1]?icon(furnaceSlot[1].id)+(furnaceSlot[1].n>1?'<span class="n">×'+furnaceSlot[1].n+'</span>':''):'')+'</div>';
+  h+='</div>';
+  // Ok2
+  h+='<div style="font-size:20px;opacity:.5">→</div>';
+  // Çıktı
+  h+='<div style="text-align:center">';
+  h+='<div style="font-size:11px;opacity:.8">ÇIKTI</div>';
+  h+='<div class="cell" data-fs="2" style="position:relative">'+(furnaceSlot[2]?icon(furnaceSlot[2].id)+(furnaceSlot[2].n>1?'<span class="n">×'+furnaceSlot[2].n+'</span>':''):'')+'</div>';
+  h+='</div>';
+  h+='</div>';
+  // İlerleme çubuğu
+  const pct=furnaceCookTime>0?Math.min(1,furnaceCook/furnaceCookTime):0;
+  h+='<div style="background:#333;height:8px;border-radius:4px;margin:8px 0;overflow:hidden">';
+  h+='<div style="background:#ff6f00;height:100%;width:'+(pct*100)+'%;border-radius:4px"></div>';
+  h+='</div>';
+  h+='<div style="font-size:11px;opacity:.7">Mesafe uzarsa fırın durur</div>';
+  h+='<div class="sep"></div>';
+ }
+
  // Craft grid (Minecraft 3x3)
  h+='<h3>Çözümlenme <small>Eşyaları kareye koy, sonuç çıkacak</small></h3>';
  h+='<div style="display:flex;gap:8px;align-items:flex-start;margin:6px 0">';
@@ -213,6 +246,9 @@ pan.addEventListener('click',e=>{
   if(mv!=null){slots[mv]=null;mv=null;refresh()}
   return;
  }
+ if(t.id=='closeFurnace'){furnaceTx=0;furnaceTy=0;pan.style.display='none';return}
+ const cfs=t.closest&&t.closest('[data-fs]');
+ if(cfs){furnaceSlotTap(+cfs.dataset.fs);return}
  const cg=t.closest&&t.closest('[data-cg]');
  if(cg){craftGridTap(+cg.dataset.cg);return}
  const c=t.closest&&t.closest('.cell');

@@ -321,3 +321,45 @@ function craftTake(){
  refresh();
  return true;
 }
+
+// Fırın yuvası tıklama (0=yakıt, 1=girdi, 2=çıktı)
+function furnaceSlotTap(fs){
+ if(craftHold){
+  // Elinde eşya var, fırına koy (çıkış yuvasına koyulamaz)
+  if(fs===2)return;
+  const target=furnaceSlot[fs];
+  if(target&&target.id==craftHold.id&&!isTool(target.id)){
+   target.n+=craftHold.n;
+  }else{
+   furnaceSlot[fs]={id:craftHold.id,n:craftHold.n};
+  }
+  craftHold=null;
+  refresh();return;
+ }
+ if(mv!=null){
+  const inv=slots[mv];
+  if(inv){
+   if(fs===2)return; // çıkışa koyulamaz
+   const target=furnaceSlot[fs];
+   if(target&&target.id==inv.id&&!isTool(target.id)){
+    target.n+=inv.n;
+   }else{
+    furnaceSlot[fs]={id:inv.id,n:inv.n};
+   }
+   slots[mv]=null;mv=null;
+  }
+  refresh();return;
+ }
+ // El boş, fırından al
+ const s=furnaceSlot[fs];
+ if(s){
+  if(s.id==49||s.id==50){
+   // Ham/pişmiş balık envantere al
+   addItem(s.id,s.n);
+  }else{
+   addItem(s.id,s.n);
+  }
+  furnaceSlot[fs]=null;
+  refresh();
+ }
+}

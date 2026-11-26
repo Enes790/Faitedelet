@@ -190,7 +190,41 @@ function update(dt){
   }
  }
 
-// Çimen yayılma: oyuncunun çevresinde, aşağıda çimen/üstünde varsaToprak → çimene çevir (her 5 saniye)
+// Fırın sistemi: oyuncu yakındaysa pişirme devam eder
+ if(furnaceTx!==0||furnaceTy!==0){
+  const dx=furnaceTx+0.5-(px+pw/2),dy=furnaceTy+0.5-(py+ph/2);
+  const dist=Math.hypot(dx,dy);
+  if(dist>12){furnaceActive=false;furnaceCook=0;furnaceCookTime=0;furnaceTx=0;furnaceTy=0;pan.style.display='none'}
+  else{
+   // Yakıt var ve girdi var ve pişirme devam etmiyorsa başlat
+   if(!furnaceActive&&furnaceSlot[0]&&furnaceSlot[1]){
+    const fuel=furnaceSlot[0].id;
+    const input=furnaceSlot[1].id;
+    const burnTime=FUEL_BURN[fuel];
+    const recipe=COOK_RECIPES[input];
+    if(burnTime&&recipe){
+     furnaceActive=true;
+     furnaceCookTime=recipe.time;
+     furnaceCook=0;
+     furnaceSlot[0].n--;if(!furnaceSlot[0].n)furnaceSlot[0]=null;
+    }
+   }
+   // Pişirme ilerle
+   if(furnaceActive&&furnaceSlot[1]){
+    furnaceCook+=dt;
+    if(furnaceCook>=furnaceCookTime){
+     const recipe=COOK_RECIPES[furnaceSlot[1].id];
+     furnaceSlot[1].n--;if(!furnaceSlot[1].n)furnaceSlot[1]=null;
+     if(furnaceSlot[2]){
+      if(furnaceSlot[2].id==recipe.out)furnaceSlot[2].n+=1;
+     }else furnaceSlot[2]={id:recipe.out,n:1};
+     furnaceActive=false;furnaceCook=0;furnaceCookTime=0;
+    }
+   }
+  }
+ }
+
+ // Çimen yayılma: oyuncunun çevresinde, aşağıda çimen/üstünde varsaToprak → çimene çevir (her 5 saniye)
  grassTimer+=dt;
  if(grassTimer>5){
   grassTimer=0;
