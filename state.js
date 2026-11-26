@@ -31,7 +31,7 @@ let craftResult=null; // {id,n,i} recipe sonucu
 // ==================== OYUN DURUMU ====================
 let lights=[];
 const skyExposed=new Uint8Array(W*H);
-let px=W/2,py=hgt(W/2)-3,vx=0,vy=0,ground=false,face=1,anim=0,tod=0,todDay=.5;
+let px=W/2,py=hgt(W/2)+0.2,vx=0,vy=0,ground=false,face=1,anim=0,tod=0,todDay=.5;
 let playerHp=20,playerMaxHp=20,hurtT=0,invT=0,attackCd=0,atkT=0,regenTimer=0,lastHpInt=20,shakeT=0,sayCd=0,panT=0,lastNF=false;
 let VW=0,VH=0,S=40,camX=0,camY=0,dpr=1;
 let drops=[],fl=[],parts=[],pops=[],mine=null,projectiles=[],arrows=[];

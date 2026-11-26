@@ -58,6 +58,7 @@ function say(s){if(sayCd>0)return;sayCd=1.2;fl.push({x:px+pw/2,y:py-.3,t:1.3,s})
 // ==================== TAVUK SPAWN TIMER ====================
 let chickenTimer=0;
 let chickenNextSpawn=8+Math.random()*7; // 8-15 saniye arası rastgele
+let grassTimer=0;
 
 // ==================== UPDATE (Ana Döngü) ====================
 function update(dt){
@@ -166,6 +167,22 @@ function update(dt){
   const chickenCount=mobs.filter(m=>m.type=='c'&&!m.dead).length;
   // %5 şans ve max 4 tavuk
   if(chickenCount<4&&Math.random()<0.05)spawnChicken();
+ }
+
+ // Çimen yayılma: aşağıda çimen, üzerinde toprak varsa 3-4 dakikada birToprak'u çimene çevir
+ grassTimer+=dt;
+ if(grassTimer>200){
+  grassTimer=0;
+  let spread=0;
+  for(let t=0;t<12&&spread<2;t++){
+   const x=Math.floor(Math.random()*(W-2))+1;
+   const y=Math.floor(Math.random()*(H-2))+1;
+   if(get(x,y)==1 && get(x,y+1)==2){
+    w[(y+1)*W+x]=1;
+    spread++;
+    updateSkyColumn(x);
+   }
+  }
  }
 
  // Mobları güncelle

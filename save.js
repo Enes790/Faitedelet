@@ -117,7 +117,7 @@ function newWorld(seedVal){
  addItem(2,10);
  addItem(7,12);
  playerHp=playerMaxHp;
- px=W/2;py=hgt(W/2)-3;vx=0;vy=0;ground=false;face=1;anim=0;
+ px=W/2;py=hgt(W/2)+0.2;vx=0;vy=0;ground=false;face=1;anim=0;
  tod=0;todDay=0.5;
  renderHearts();
  refresh();
