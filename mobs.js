@@ -3,6 +3,13 @@
 // ==================== YARDIMCI ====================
 function burst(x,y,n,c,sp){for(let i=0;i<n;i++)parts.push({x,y,vx:(Math.random()-.5)*sp,vy:-Math.random()*sp*.7,l:.4+Math.random()*.4,c,s:.08+Math.random()*.1})}
 
+function mobInWater(m){
+ const x0=Math.floor(m.x),x1=Math.floor(m.x+pw-.001);
+ const y0=Math.floor(m.y),y1=Math.floor(m.y+ph-.001);
+ for(let i=x0;i<=x1;i++)for(let j=y0;j<=y1;j++)if(get(i,j)===43)return true;
+ return false;
+}
+
 // ==================== AYARLAR ====================
 const MOB_DESPAWN_DIST=70;   // oyuncudan bu kadar uzaktaki moblar silinir
 const MOB_NEAR_DIST=40;      // "yakın mob" sayımı için mesafe
@@ -10,12 +17,12 @@ const MOB_TOTAL_CAP=16;      // dünyadaki toplam düşman sınırı
 const RESPAWN_PROTECT=2.5;   // dirilince hasar almama süresi (sn)
 
 // ==================== ORTAK MOB ====================
-const newMob=(type,x,y)=>({
+ const newMob=(type,x,y)=>({
  id:mobIdCounter++,
  type,x,y,
  vx:0,vy:0,
- hp:type=='c'?4:type=='s'?8:10,
- maxHp:type=='c'?4:type=='s'?8:10,
+ hp:type=='c'?4:type=='s'?8:type=='f'?2:10,
+ maxHp:type=='c'?4:type=='s'?8:type=='f'?2:10,
  face:1,hurt:0,burn:0,onGround:false,
  atkCd:0,shootCd:1.5,aimT:0,
  dead:false,
@@ -23,8 +30,17 @@ const newMob=(type,x,y)=>({
 });
 
 function moveMob(m,dt){
- // Tavuk yavaş düşer (tüy gibi)
- if(m.type=='c'){m.vy=Math.min(4,m.vy+18*dt);}
+ // Balık: su içinde yüzer
+ if(m.type=='f'){
+  m.vy=Math.min(3,m.vy+10*dt);
+  m.wanderCd=Math.max(0,(m.wanderCd||0)-dt);
+  if(m.wanderCd<=0){
+   m.wanderCd=1+Math.random()*2;
+   m.vx=(Math.random()-.5)*2;
+   m.face=m.vx>0?1:-1;
+  }
+  if(m.onGround&&Math.random()<0.05)m.vy=-6;
+ } else if(m.type=='c'){m.vy=Math.min(4,m.vy+18*dt);}
  else{m.vy=Math.min(20,m.vy+30*dt);}
  const ox=m.x;m.x+=m.vx*dt;
  if(coll(m.x,m.y)){m.x=ox;if(m.onGround&&m.vx&&!coll(ox+(m.vx>0?.05:-.05),m.y-1.0))m.vy=-9;m.vx=0}
@@ -70,6 +86,11 @@ function killMob(m){
   if(Math.random()<.3)drops.push({x:cx-.15,y:cy,vy:-3.4,b:27,age:0});
   drops.push({x:cx+.3,y:cy,vy:-3.6,b:28,age:0});
   burst(cx,cy,8,'#f0e8d0',5);
+ }else if(m.type=='f'){
+  // Balık: ham balık düşür
+  drops.push({x:cx,y:cy,vy:-3,b:49,age:0});
+  if(Math.random()<.5)drops.push({x:cx+.2,y:cy,vy:-3.2,b:49,age:0});
+  burst(cx,cy,6,'#4a90e0',4);
  }else if(m.type=='s'){
   // İskelet: kemik
   drops.push({x:cx,y:cy,vy:-3,b:25,age:0});
@@ -208,6 +229,21 @@ function updateMobs(dt){
     m.vx=Math.random()<0.4?0:m.face*1.5;
    }else{
     m.vx=m.wanderDir>0?1.5:-1.5;
+   }
+  }else if(m.type=='f'){
+   // BALIK: su içinde yüzme, karadaゆavaş
+   const inWater=mobInWater(m);
+   if(inWater){
+    m.vx=m.wanderDir>0?1.5:-1.5;
+    if(m.onGround)m.vy=-5; // zıplayarak yüz
+   } else {
+    m.vx=m.wanderDir*0.5; // karada çok yavaş
+   }
+   m.wanderCd=Math.max(0,(m.wanderCd||0)-dt);
+   if(m.wanderCd<=0){
+    m.wanderCd=2+Math.random()*2;
+    m.wanderDir=(Math.random()-.5)*2;
+    m.face=m.wanderDir>0?1:-1;
    }
   }else if(m.type=='s'){
    // İSKELET: uzak dur, ok at

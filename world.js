@@ -692,6 +692,30 @@ function tile(b,x,y,X,Y,g){
    g.fillStyle='#f44336';g.fillRect(x+S*.45+Math.cos(spin)*S*.08,y+S*.45+Math.sin(spin)*S*.08,S*.1,S*.1);
    return;
  }
+ // FIRIN
+ if(b==51){
+   g.fillStyle='#3e2723';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#5d4037';g.fillRect(x+2,y+2,S-3,S-3);
+   g.fillStyle='#4e342e';g.fillRect(x+S*.25,y+S*.25,S*.5,S*.5);
+   g.fillStyle='#ff6f00';g.fillRect(x+S*.4,y+S*.35,S*.2,S*.05);
+   g.fillStyle='#4e342e';g.fillRect(x+1,y+S-2,S-2,1);
+   g.fillStyle='#4e342e';g.fillRect(x+S-2,y+1,1,S-2);
+   g.fillStyle='#795548';g.fillRect(x+S*.3,y+S*.6,S*.4,S*.05);
+   return;
+ }
+ // CALISMA MASASI (Workbench)
+ if(b==52){
+   g.fillStyle='#5d4037';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#795548';g.fillRect(x+2,y+2,S-3,S-3);
+   g.fillStyle='#4e342e';g.fillRect(x+S*.2,y+S*.2,S*.6,S*.6);
+   g.fillStyle='#4e342e';g.fillRect(x+1,y+S-2,S-2,1);
+   g.fillStyle='#4e342e';g.fillRect(x+S-2,y+1,1,S-2);
+   g.fillStyle='#3e2723';g.fillRect(x+S*.15,y+S*.4,S*.1,S*.1);
+   g.fillRect(x+S*.75,y+S*.4,S*.1,S*.1);
+   g.fillRect(x+S*.15,y+S*.7,S*.1,S*.1);
+   g.fillRect(x+S*.75,y+S*.7,S*.1,S*.1);
+   return;
+ }
  // FALLBACK
  g.fillStyle=BASE[b]||'#f0f';g.fillRect(x,y,S+1,S+1);
 }

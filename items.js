@@ -14,7 +14,8 @@ const NAME={
  42:'Toprak Vazo',
  43:'Su',
  44:'Tahta Kılıç',45:'Taş Kılıç',46:'Pişmiş Tavuk',
- 47:'Sandık',48:'Mob Üretici'
+ 47:'Sandık',48:'Mob Üretici',
+ 49:'Ham Balık',50:'Pişmiş Balık',51:'Fırın',52:'Çalışma Masası'
 };
 
 const IC={
@@ -42,7 +43,8 @@ const GL={
  42:'🏺',
  43:'💧',
  44:'🗡',45:'🗡',46:'🍗',
- 47:'📦',48:'🔥'
+ 47:'📦',48:'🔥',
+ 49:'🐟',50:'🍳',51:'🔥',52:'🪵'
 };
 
 // [çıktı, adet, {malzeme:adet}, dökümGerekir]
@@ -73,14 +75,16 @@ const REC=[
  [39,1,{36:3,9:2},0],      // Elmas balta
  [40,1,{36:1,9:2},0],      // Elmas kürek
  [41,1,{36:3,9:1},0],      // Elmas kılıç (2 -> 3 elmas)
+ [52,1,{4:4},0],           // Çalışma Masası (4 odun)
+ [51,1,{3:8},0],           // Fırın (8 taş)
 ];
 
 const HARD={
  1:1.0,2:1.0,3:5.0,4:2.2,5:0.5,6:1.2,7:2.2,8:6.0,14:0.6,15:7.5,19:5.0,
- 31:0.5,35:12.0,37:8.0,42:0.8,43:0.5,47:1.0,48:10.0
+ 31:0.5,35:12.0,37:8.0,42:0.8,43:0.5,47:1.0,48:10.0,49:0.5,50:0.5,51:2.0,52:1.0
 };
 
-const PLACE=new Set([2,3,4,5,6,7,8,14,19,31,37,47,48]);
+const PLACE=new Set([2,3,4,5,6,7,8,14,19,31,37,47,48,51,52]);
 
 // ==================== DAYANIKLILIK ====================
 // Aletlerin azami kullanım sayısı (malzemeye göre)
@@ -103,7 +107,7 @@ const TOOLS={
 const REPAIR_BY_DUR={40:[7,1],90:[3,2],250:[16,1],800:[36,1]};
 
 // Yenilebilir eşyalar: id -> yenilenen can
-const FOOD={22:1,28:2,46:5};
+const FOOD={22:1,28:2,46:5,49:2,50:5};
 
 // ==================== EŞYA YARDIMCILARI ====================
 const isTool=id=>DUR[id]!==undefined||TOOL_SET.has(id);

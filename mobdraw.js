@@ -79,6 +79,25 @@ function drawChicken(m,now,hf,t){
  if(m.panicCd>0){g.fillStyle='#ff3030';g.font='bold '+Math.floor(S*.5)+'px system-ui';g.textAlign='center';g.fillText('!',0,-.15*S);g.textAlign='left';}
 }
 
+function drawFish(m,now,hf,t){
+ g.save();g.scale(.5,.5);g.translate(0,.4*S);
+ const walk=Math.sin(t*6)*.03*S,bob=Math.abs(Math.sin(t*6))*.03*S;
+ const bodyC=hf?'#ff6666':'#4a90e0';
+ const finC=hf?'#ff8888':'#2a6a8a';
+ const eyeC=hf?'#ff4444':'#fff';
+ g.fillStyle=bodyC;
+ g.fillRect(-.22*S,.6*S,.44*S,.3*S);
+ g.fillStyle=finC;
+ g.fillRect(-.3*S,.6*S,.1*S,.2*S);
+ g.fillRect(.2*S,.6*S,.1*S,.2*S);
+ g.fillStyle=bodyC;
+ g.fillRect(-.15*S,.3*S,.3*S,.1*S);
+ g.fillStyle=eyeC;
+ g.fillRect(.1*S,.5*S,.05*S,.05*S);
+ g.fillStyle='#000';g.fillRect(.11*S,.51*S,.02*S,.02*S);
+ g.restore();
+}
+
 function drawMob(m,now){
  const x=(m.x-camX)*S,y=(m.y-camY)*S,hf=m.hurt>0,t=now/150+m.id;
  // Ekran dışındaki mobları çizme (performans)
@@ -87,6 +106,7 @@ function drawMob(m,now){
  g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(0,ph*S,S*.35,S*.08,0,0,6.283);g.fill();
  if(m.type=='s')drawSkeleton(m,now,hf,t);
  else if(m.type=='c')drawChicken(m,now,hf,t);
+ else if(m.type=='f')drawFish(m,now,hf,t);
  else drawZombie(m,now,hf,t);
  g.restore();
  if(m.hp<m.maxHp*0.7){

@@ -59,6 +59,8 @@ function say(s){if(sayCd>0)return;sayCd=1.2;fl.push({x:px+pw/2,y:py-.3,t:1.3,s})
 let chickenTimer=0;
 let chickenNextSpawn=8+Math.random()*7; // 8-15 saniye arası rastgele
 let grassTimer=0;
+let fishTimer=0;
+let fishNextSpawn=10+Math.random()*10; // 10-20 saniye
 
 // ==================== UPDATE (Ana Döngü) ====================
 function update(dt){
@@ -169,7 +171,26 @@ function update(dt){
   if(chickenCount<4&&Math.random()<0.05)spawnChicken();
  }
 
- // Çimen yayılma: oyuncunun çevresinde, aşağıda çimen/üstünde varsaToprak → çimene çevir (her 5 saniye)
+ // Balık doğma: oyuncunun çevresindeki su bloklarında
+ fishTimer+=dt;
+ if(fishTimer>fishNextSpawn){
+  fishTimer=0;
+  fishNextSpawn=10+Math.random()*10;
+  const fishCount=mobs.filter(m=>m.type=='f'&&!m.dead).length;
+  if(fishCount<6){
+   const cx=Math.floor(px+pw/2),cy=Math.floor(py+ph/2);
+   for(let t=0;t<15;t++){
+    const x=cx+(Math.floor(Math.random()*11)-5);
+    const y=cy+(Math.floor(Math.random()*11)-5);
+    if(x>=0&&x<W&&y>=0&&y<H-1 && get(x,y)===43 && !get(x,y+1)){
+     mobs.push(newMob('f',x+0.15,y+0.2));
+     break;
+    }
+   }
+  }
+ }
+
+// Çimen yayılma: oyuncunun çevresinde, aşağıda çimen/üstünde varsaToprak → çimene çevir (her 5 saniye)
  grassTimer+=dt;
  if(grassTimer>5){
   grassTimer=0;

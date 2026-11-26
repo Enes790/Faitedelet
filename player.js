@@ -245,6 +245,20 @@ function useItem(){
  if(!s)return false;
  if(FOOD[s.id]!==undefined)return eatSel(); // yemek ye
  if(s.id==23)return tryFertilize();
+ // FIRIN: Ham balığı yakin bir firin icinde pişir
+ if(s.id==49){
+  const cx=Math.floor(px+pw/2),cy=Math.floor(py+ph/2);
+  let nearFurnace=false;
+  for(let y=cy-2;y<=cy+2&&!nearFurnace;y++)for(let x=cx-2;x<=cx+2;x++){
+   if(inBounds(x,y)&&get(x,y)==51)nearFurnace=true;
+  }
+  if(nearFurnace){
+   s.id=50;s.n=1;refresh();
+   fl.push({x:px+pw/2,y:py-.3,t:1.2,s:'Balık pişirildi!',color:'#ff6f00'});
+   buzz(14);
+   return true;
+  }
+ }
  return AIM.place?placeAt(AIM.place[0],AIM.place[1]):false;
 }
 
