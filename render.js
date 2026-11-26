@@ -367,7 +367,11 @@ function draw(){
  g.font='bold 14px system-ui';g.textAlign='center';g.lineWidth=3;g.strokeStyle='#000';
  for(const f of fl){
   const fx=(f.x-camX)*S,fy=(f.y-camY)*S;
-  g.fillStyle='rgba(255,255,255,'+Math.min(1,f.t*2)+')';g.strokeText(f.s,fx,fy);g.fillText(f.s,fx,fy);
+  const fc=f.color||'#fff';
+  const a=Math.min(1,f.t*2);
+  g.globalAlpha=a;
+  g.fillStyle=fc;g.strokeText(f.s,fx,fy);g.fillText(f.s,fx,fy);
+  g.globalAlpha=1;
  }
  if(mine&&mine.p>0){
   const b=mine.layer=='bg'?getBg(mine.tx,mine.ty):get(mine.tx,mine.ty);

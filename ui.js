@@ -208,7 +208,7 @@ function cellTap(i){
 pan.addEventListener('click',e=>{
  const t=e.target;
  if(t.id=='px'){pan.style.display='none';mv=null;return}
- if(t.id=='newgame'){if(confirm('Yeni oyun başlatmak istediğinizden emin misiniz? Kaydedilen veriler silinecek.')){newGame();pan.style.display='none';return}}
+ if(t.id=='newgame'){if(confirm('Yeni oyun başlatmak istediğinizden emin misiniz? Kaydedilen veriler silinecek.')){newWorld(null);pan.style.display='none';return}}
  if(t.id=='drop'){
   if(mv!=null){slots[mv]=null;mv=null;refresh()}
   return;

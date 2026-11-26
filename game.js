@@ -169,15 +169,16 @@ function update(dt){
   if(chickenCount<4&&Math.random()<0.05)spawnChicken();
  }
 
- // Çimen yayılma: aşağıda çimen, üzerinde toprak varsa 3-4 dakikada birToprak'u çimene çevir
+ // Çimen yayılma: oyuncunun çevresinde, aşağıda çimen/üstünde varsaToprak → çimene çevir (her 5 saniye)
  grassTimer+=dt;
- if(grassTimer>200){
+ if(grassTimer>5){
   grassTimer=0;
+  const cx=Math.floor(px),cy=Math.floor(py);
   let spread=0;
-  for(let t=0;t<12&&spread<2;t++){
-   const x=Math.floor(Math.random()*(W-2))+1;
-   const y=Math.floor(Math.random()*(H-2))+1;
-   if(get(x,y)==1 && get(x,y+1)==2){
+  for(let t=0;t<8&&spread<2;t++){
+   const x=cx+(Math.floor(Math.random()*9)-4);
+   const y=cy+(Math.floor(Math.random()*9)-4);
+   if(x>=0&&x<W&&y>=0&&y<H-1 && get(x,y)==1 && get(x,y+1)==2){
     w[(y+1)*W+x]=1;
     spread++;
     updateSkyColumn(x);

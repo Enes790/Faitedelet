@@ -42,10 +42,13 @@ function hitMob(m,damage,knockback){
  m.hp-=damage;m.hurt=0.3;shakeT=0.05;
  const nmx=m.x+((m.x+pw/2>px+pw/2)?1:-1)*knockback;
  if(!coll(nmx,m.y))m.x=nmx;
+ // Vurulma geri bildirimi: damage number
+ fl.push({x:m.x+pw/2,y:m.y-0.3,t:1.2,s:'-'+damage,color:'#ff4444'});
+ const color=m.type=='s'?'#e6e2d0':m.type=='c'?'#f0e8d0':'#e74c3c';
+ burst(m.x+pw/2,m.y+ph/2,4,color,4);
  if(m.hp<=0){
   killMob(m);
  }else{
-  const color=m.type=='s'?'#e6e2d0':m.type=='c'?'#f0e8d0':'#e74c3c';
   burst(m.x+pw/2,m.y+ph/2,4,color,4);
   // Tavuk vurulunca kaçar
   if(m.type=='c'){
@@ -238,7 +241,7 @@ function updateMobs(dt){
   }else m.burn=0;
 
   // Zombi saldırısı
-  if(m.type=='z'&&dist<1.0&&m.atkCd<=0&&damagePlayer(2,mx))m.atkCd=1.0;
+  if(m.type=='z'&&dist<1.4&&m.atkCd<=0&&damagePlayer(2,mx))m.atkCd=1.0;
 
   if(m.y>H+5)m.dead=true;
  }
@@ -273,6 +276,7 @@ function damagePlayer(a,fromX){
  playerHp=Math.max(0,playerHp-a);
  invT=.5;hurtT=.3;regenTimer=3;shakeT=.15;
  renderHearts();
+ fl.push({x:px+pw/2,y:py-0.5,t:1.2,s:'-'+a,color:'#ff4444'});
  const npx=px+(px+pw/2>fromX?.4:-.4);
  if(!coll(npx,py))px=Math.max(0,Math.min(W-pw,npx));
  buzz([30,20,30]);
@@ -286,7 +290,7 @@ function mobTarget(){
  for(const m of mobs){
   if(m.dead)continue;
   const dx=m.x+pw/2-pcx,dy=m.y+ph/2-pcy,d=Math.hypot(dx,dy);
-  if(d>2.2||(dx*aimX+dy*aimY)/(d||1)<0.3)continue;
+  if(d>3.0||(dx*aimX+dy*aimY)/(d||1)<0.25)continue;
   if(d<bd){bd=d;best=m}
  }
  return best;
