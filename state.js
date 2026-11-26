@@ -15,7 +15,7 @@ const TOOL_SET=new Set([10,11,12,13,17,18,21,32,33,34,38,39,40,41]);
 // ==================== DÜNYA VERİSİ ====================
 const w=new Uint8Array(W*H),bg=new Uint8Array(W*H);
 const tileCache=new Map();
-const seed=Math.random()*1000;
+let seed=window.chosenSeed??(Math.random()*1000);
 const hgt=x=>Math.floor(24+Math.sin(x*.07+seed)*5+Math.sin(x*.19+seed*2)*2.5+Math.sin(x*.023+seed)*6);
 const inBounds=(x,y)=>x>=0&&x<W&&y>=0&&y<H;
 const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};

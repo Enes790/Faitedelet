@@ -34,6 +34,7 @@ addEventListener('keydown',e=>{keys[e.code]=1;
  if(e.code=='KeyE')togglePan();
  if(e.code=='KeyF')useItem();
  if(e.code=='KeyQ')throwOrb()
+ if(e.code=='KeyK')saveGame(0)
 });
 addEventListener('keyup',e=>keys[e.code]=0);
 cv.addEventListener('contextmenu',e=>e.preventDefault());
@@ -190,17 +191,59 @@ function update(dt){
  camY=Math.max(0,Math.min(Math.max(0,H-th),camY));
 }
 
-// ==================== BAŞLAT ====================
-addItem(2,10);
-addItem(7,12);
-showName();
+// ==================== BAŞLANGIÇ EKRANI ====================
+const ss=document.getElementById('startscreen');
+const seedInput=document.getElementById('seedinput');
+const worldList=document.getElementById('worldlist');
+let gameStarted=false;
 
-let last=performance.now();
-function loop(n){
- const dt=Math.min(.05,(n-last)/1000);
- last=n;
- update(dt);
- draw();
+function renderWorldList(){
+ const saves=listSaves();
+ let html='';
+ if(saves.length===0)html='<div style="font-size:12px;opacity:.6;padding:8px">Kayıtlı dünya yok</div>';
+ else{
+  saves.forEach(d=>{
+   const date=new Date(d.time).toLocaleString('tr-TR');
+   html+=`<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,.1);cursor:pointer" onclick="loadSlot(${d.slot})">
+    <div style="font-weight:700">Slot ${d.slot+1}</div>
+    <div style="font-size:12px;opacity:.8">Seed: ${d.seed?.toFixed?.(0)??'-'} · ${date}</div>
+   </div>`;
+  });
+ }
+ worldList.innerHTML=html;
+}
+
+window.loadSlot=(slot)=>{
+ if(loadGameSlot(slot)){ss.style.display='none';gameStarted=true;startLoop();}
+};
+
+renderWorldList();
+
+document.getElementById('startbtn').addEventListener('click',()=>{
+ const val=seedInput.value.trim();
+ const s=val?parseFloat(val):null;
+ newWorld(s);
+ ss.style.display='none';
+ gameStarted=true;
+ startLoop();
+});
+
+function startLoop(){
+ showName();
+ let last=performance.now();
+ function loop(n){
+  const dt=Math.min(.05,(n-last)/1000);
+  last=n;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+ }
  requestAnimationFrame(loop);
 }
-requestAnimationFrame(loop);
+
+// Başlangıç ekranındayken döngüyü çalıştırma
+if(!gameStarted){
+ ss.style.display='flex';
+ // İlk karede canvası temizle
+ g.fillStyle='#0a0f1e';g.fillRect(0,0,VW,VH);
+}

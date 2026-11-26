@@ -148,7 +148,8 @@ function placeMine(){
 }
 
 // ==================== DÜNYA ÜRETİMİ ====================
-(function gen(){
+function generateWorld(seedVal){
+ if(seedVal!==undefined)seed=seedVal;
  // 1. Yüzey + Taş + Deniz Seviyesi (Su)
  const SEA_LEVEL = 28; // Suyun maksimum yüksekliği
  for(let x=0;x<W;x++){
@@ -358,7 +359,8 @@ function placeMine(){
  for(let i=0;i<dungeonCount;i++)placeDungeon();
  const mineCount=Math.floor(W/90)+1;
  for(let i=0;i<mineCount;i++)placeMine();
-})();
+}
+generateWorld(seed);
 
 // ==================== IŞIK KAYNAKLARI ====================
 function scanLights(){

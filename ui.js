@@ -74,7 +74,7 @@ function renderPan(){
  const nf=nearForge();
  lastNF=nf;
 
- let h='<h3>Envanter <u id="px">Kapat</u></h3>';
+ let h='<h3>Envanter <u id="px">Kapat</u> <u id="newgame" style="color:#ff6b6b">Yeni Oyun</u></h3>';
  h+='<div class="info">';
  if(m){
   h+='Taşınıyor: <b>'+NAME[m.id]+(DUR[m.id]?' ('+durOf(m)+'/'+DUR[m.id]+')':' ×'+m.n)+'</b> — hedef kutuya dokun <u id="drop">At</u>';
@@ -176,6 +176,7 @@ function cellTap(i){
 pan.addEventListener('click',e=>{
  const t=e.target;
  if(t.id=='px'){pan.style.display='none';mv=null;return}
+ if(t.id=='newgame'){if(confirm('Yeni oyun başlatmak istediğinizden emin misiniz? Kaydedilen veriler silinecek.')){newGame();pan.style.display='none';return}}
  if(t.id=='drop'){
   if(mv!=null){slots[mv]=null;mv=null;refresh()}
   return;
