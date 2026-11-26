@@ -44,6 +44,7 @@ function showName(){
 
 function refresh(){
  renderBar();
+ craftMatch();
  if(pan.style.display=='block')renderPan();
 }
 
@@ -75,6 +76,29 @@ function renderPan(){
  lastNF=nf;
 
  let h='<h3>Envanter <u id="px">Kapat</u> <u id="newgame" style="color:#ff6b6b">Yeni Oyun</u></h3>';
+
+ // Craft grid (Minecraft 3x3)
+ h+='<h3>Çözümlenme <small>Eşyaları kareye koy, sonuç çıkacak</small></h3>';
+ h+='<div style="display:flex;gap:8px;align-items:flex-start;margin:6px 0">';
+ h+='<div class="g9" style="gap:4px">';
+ for(let cgi=0;cgi<9;cgi++){
+  const s=craftGrid[cgi];
+  const selCG = (craftHold&&craftHold.grid===cgi);
+  h+='<div class="cell'+(selCG?' sel':'')+'" data-cg="'+cgi+'" style="position:relative">'+(s?icon(s.id)+(s.n>1?'<span class="n">'+s.n+'</span>':''):'')+'</div>';
+ }
+ h+='</div>';
+ h+='<div style="display:flex;flex-direction:column;gap:6px;justify-content:center">';
+ if(craftResult){
+  h+='<div class="cell" style="position:relative">'+icon(craftResult.id)+'<span class="n">×'+craftResult.n+'</span></div>';
+  h+='<button onclick="craftTake()" style="padding:8px 12px;border-radius:6px;border:0;background:#4caf50;color:#fff;font-weight:700;cursor:pointer">AL</button>';
+ } else {
+  h+='<div class="cell" style="opacity:.25"></div>';
+  h+='<button disabled style="padding:8px 12px;border-radius:6px;border:0;background:#666;color:#999;font-weight:700">AL</button>';
+ }
+ h+='</div>';
+ h+='</div>';
+
+ h+='<div class="sep"></div>';
  h+='<div class="info">';
  if(m){
   h+='Taşınıyor: <b>'+NAME[m.id]+(DUR[m.id]?' ('+durOf(m)+'/'+DUR[m.id]+')':' ×'+m.n)+'</b> — hedef kutuya dokun <u id="drop">At</u>';
@@ -149,6 +173,14 @@ function renderPan(){
 }
 
 function cellTap(i){
+ // Craft gridden alınan eşyayı envantere koy
+ if(craftHold){
+  const s=slots[i];
+  if(s&&s.id==craftHold.id&&!isTool(s.id)){s.n+=craftHold.n}
+  else slots[i]={id:craftHold.id,n:craftHold.n};
+  craftHold=null;
+  refresh();return;
+ }
  if(mv==null){
   if(slots[i])mv=i;
   if(i<9){sel=i;showName()}
@@ -181,6 +213,8 @@ pan.addEventListener('click',e=>{
   if(mv!=null){slots[mv]=null;mv=null;refresh()}
   return;
  }
+ const cg=t.closest&&t.closest('[data-cg]');
+ if(cg){craftGridTap(+cg.dataset.cg);return}
  const c=t.closest&&t.closest('.cell');
  if(c){cellTap(+c.dataset.s);return}
  const rp=t.closest&&t.closest('button[data-rep]');
@@ -192,7 +226,7 @@ pan.addEventListener('click',e=>{
 function togglePan(){
  const o=pan.style.display=='block';
  pan.style.display=o?'none':'block';
- mv=null;
+ mv=null;craftHold=null;craftResult=null;
  if(!o)renderPan();
 }
 

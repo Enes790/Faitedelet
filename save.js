@@ -109,8 +109,10 @@ function newWorld(seedVal){
  generateWorld(seed);
  scanLights();
  computeSkyExposure();
- // Oyuncu sıfırla
+// Oyuncu sıfırla
  for(let i=0;i<NS;i++)slots[i]=null;
+ for(let i=0;i<9;i++)craftGrid[i]=null;
+ craftHold=null;craftResult=null;
  sel=0;
  addItem(2,10);
  addItem(7,12);

@@ -23,6 +23,10 @@ const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
 // ==================== ENVANTER ====================
 const slots=new Array(NS).fill(null);
 let sel=0,mv=null;
+// Crafting grid (Minecraft 3x3)
+const craftGrid=new Array(9).fill(null);
+let craftHold=null;   // gridden alınan eşya
+let craftResult=null; // {id,n,i} recipe sonucu
 
 // ==================== OYUN DURUMU ====================
 let lights=[];

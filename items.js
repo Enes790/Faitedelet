@@ -245,3 +245,73 @@ function craft(i,all){
  // Aletler hep tek tek üretilir ("hepsini yap" malzemeyi tüketmesin)
  if(!all||isTool(REC[i][0])){craftOnce(i);return}
  let n=0;while(n<16&&craftOnce(i))n++}
+
+// ==================== MINECRAFT TARZI CRAFT GRID ====================
+// Griddeki eşyaları say ve eşleşen tarayı bul (şekilsiz / herhangi bir yere koyulabilir)
+function craftMatch(){
+ const counts={};
+ for(const s of craftGrid){if(s)counts[s.id]=(counts[s.id]||0)+(s.n||1)}
+ for(let i=0;i<REC.length;i++){
+  const r=REC[i];
+  let ok=true;
+  for(const k in r[2]){if((counts[+k]||0)<r[2][k]){ok=false;break}}
+  if(ok){craftResult={id:r[0],n:r[1],i};return true}
+ }
+ craftResult=null;
+ return false;
+}
+
+// Gridden eşya al / bırak (envanter panelinden çağrılır)
+function craftGridTap(i){
+ const s=craftGrid[i];
+ if(mv!=null){
+  // Envanterden gride koy (mv = envanter slot indeksi)
+  const inv=slots[mv];
+  if(inv){
+   if(s&&s.id==inv.id&&!isTool(inv.id)){s.n+=inv.n;slots[mv]=null}
+   else{craftGrid[i]={id:inv.id,n:inv.n};slots[mv]=null}
+  }
+  mv=null;
+ }
+ else if(craftHold==null){
+  if(s){craftHold={id:s.id,n:s.n};craftGrid[i]=null}
+ }
+ else if(typeof craftHold==='number'){
+  // Envanterden gride koy
+  const inv=slots[craftHold];
+  if(inv){
+   if(s&&s.id==inv.id&&!isTool(inv.id)){s.n+=inv.n;slots[craftHold]=null}
+   else{craftGrid[i]={id:inv.id,n:inv.n};slots[craftHold]=null}
+  }
+  craftHold=null;
+ }
+ else {
+  // Gridten gride taşı / birleştir
+  if(s&&s.id==craftHold.id&&!isTool(s.id)){s.n+=craftHold.n}
+  else{craftGrid[i]={id:craftHold.id,n:craftHold.n}}
+  craftGrid[craftHold.grid]=null;
+  craftHold=null;
+ }
+ craftMatch();
+ refresh();
+}
+
+// Craft sonucunu al (malzemeyi gridden tüket, sonucu envantere ekle)
+function craftTake(){
+ if(!craftResult)return false;
+ const r=REC[craftResult.i];
+ // Gridden malzemeyi tüket
+ for(const k in r[2]){
+  let need=r[2][k];
+  for(let gi=0;gi<9&&need>0;gi++){
+   const gs=craftGrid[gi];
+   if(gs&&gs.id==+k){const a=Math.min(need,gs.n);gs.n-=a;need-=a;if(!gs.n)craftGrid[gi]=null}
+  }
+ }
+ const left=addItem(craftResult.id,craftResult.n);
+ if(left>0)for(let n=0;n<left;n++)drops.push({x:px+pw/2,y:py,vy:-4,b:craftResult.id,age:0,d:DUR[craftResult.id]});
+ craftResult=null;
+ craftMatch();
+ refresh();
+ return true;
+}
