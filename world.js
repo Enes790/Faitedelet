@@ -21,7 +21,7 @@ function plantTree(x,h,t){
 
 // ==================== YAPI ŞABLON SİSTEMİ ====================
 // Harf -> blok: ' ' hava, '#' taş, 'P' kalas, 'T' meşale, 'V' vazo, 'I' demir, 'D' elmas cevheri, 'F' döküm, 'W' odun, '.' dokunma
-const LEG={' ':0,'#':3,'P':7,'T':14,'V':42,'I':15,'D':35,'F':19,'W':4};
+const LEG={' ':0,'#':3,'P':7,'T':14,'V':42,'I':15,'D':35,'F':19,'W':4,'C':47,'S':48};
 
 function stamp(rows,x0,y0){
  for(let r=0;r<rows.length;r++)for(let c=0;c<rows[r].length;c++){
@@ -60,7 +60,7 @@ const DUNGEON=[
  '#############',
  '#T         T#',
  '#     V     #',
- '#   PPPPP   #',
+ '#   PCSPP   #',
  '             ',
  ' V   DDD   V ',
  '#############'
@@ -113,7 +113,7 @@ function placeMine(){
    const x=sx+dir*i;
    for(let dy=-2;dy<=0;dy++)w[(sy+dy)*W+x]=0;
    // zemin: bazı yerlerde kalas
-   if(w[(sy+1)*W+x]===3&&i%6<2)w[(sy+1)*W+x]=7;
+   if(w[(sy+1)*W+x]===3&&i%6<2&&w[(sy+2)*W+x]!==0)w[(sy+1)*W+x]=7;
    // destek kirişleri (arka planda, geçişi engellemez)
    if(i%6===0){
     for(let dy=-2;dy<=0;dy++)bg[(sy+dy)*W+x]=4;
@@ -134,7 +134,7 @@ function placeMine(){
    if(k<5){for(let dy=-3;dy<=0;dy++)w[(sy+dy)*W+x]=0}
   }
   const vx=sx+dir*(len+2);
-  w[sy*W+vx]=42;
+  w[sy*W+vx]=47; // Sandık (maden kuyusu ödülü)
   const tx=sx+dir*(len+1);
   w[(sy-3)*W+tx]=14;
   // duvarda elmas cevheri
@@ -148,7 +148,8 @@ function placeMine(){
 }
 
 // ==================== DÜNYA ÜRETİMİ ====================
-(function gen(){
+function generateWorld(seedVal){
+ if(seedVal!==undefined)seed=seedVal;
  // 1. Yüzey + Taş + Deniz Seviyesi (Su)
  const SEA_LEVEL = 28; // Suyun maksimum yüksekliği
  for(let x=0;x<W;x++){
@@ -261,7 +262,7 @@ function placeMine(){
   plantTree(x,h,3+Math.floor(Math.random()*2));
  }
 
- // 4. Kaktüsler (kum üzerine)
+ // 4. Kaktüsler (kum üzerinde)
  for(let i=0;i<Math.floor(W*0.02);i++){
   const x=Math.floor(Math.random()*W);
   const surf=hgt(x);
@@ -271,6 +272,18 @@ function placeMine(){
    if(surf-j>=0&&w[(surf-j)*W+x]===0){
     w[(surf-j)*W+x]=31;
    }
+  }
+ }
+
+ // 4b. Çakıl Taşı (su kenarlarında ve kumdan oluşan bölgelerde)
+ for(let i=0;i<Math.floor(W*0.03);i++){
+  const x=Math.floor(Math.random()*W);
+  const surf=hgt(x);
+  if(w[surf*W+x]===6 && Math.random()<0.5){
+   w[(surf+1)*W+x]=59;
+  }
+  if(w[surf*W+x]===43 && surf>0 && w[(surf-1)*W+x]===3){
+   w[(surf-1)*W+x]=59;
   }
  }
 
@@ -299,7 +312,8 @@ function placeMine(){
  }
  scatter(8,240,3,4,8);       // Kömür
  scatter(15,180,8,2,6);      // Demir
- scatter(35,60,22,2,5);      // Elmas (daha sık: 15 -> 60 damar, daha sığ, daha büyük)
+ scatter(35,60,22,2,5);      // Elmas
+ scatter(53,40,15,3,6);      // Altın cevheri (derinlerde, demirden çok daha az)
 
  // 6. Terk edilmiş ocak kulübeleri (Göl ve Engebeli Arazi Çakışma Kontrolü)
  function placeForge(cx){
@@ -358,7 +372,8 @@ function placeMine(){
  for(let i=0;i<dungeonCount;i++)placeDungeon();
  const mineCount=Math.floor(W/90)+1;
  for(let i=0;i<mineCount;i++)placeMine();
-})();
+}
+generateWorld(seed);
 
 // ==================== IŞIK KAYNAKLARI ====================
 function scanLights(){
@@ -668,6 +683,85 @@ function tile(b,x,y,X,Y,g){
    g.fillStyle='#1a5a9a';g.fillRect(x,y,S+1,S+1);
    g.fillStyle='#2a7ac0';g.fillRect(x+1,y+1,S-1,S-1);
    g.fillStyle='#3a8ad0';g.fillRect(x+2,y+2,S-3,S-3);
+   return;
+ }
+ // SANDIK
+ if(b==47){
+   g.fillStyle='#5d4037';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#8d6e63';g.fillRect(x+2,y+2,S-3,S-3);
+   g.fillStyle='#3e2723';g.fillRect(x+S*.25,y+S*.25,S*.5,S*.5);
+   g.fillStyle='#5d4037';g.fillRect(x+S*.4,y+S*.45,S*.2,S*.05);
+   g.fillStyle='#4e342e';g.fillRect(x+1,y+S-2,S-2,1);
+   g.fillStyle='#4e342e';g.fillRect(x+S-2,y+1,1,S-2);
+   return;
+ }
+ // MOB URETICI (Spawner)
+ if(b==48){
+   g.fillStyle='#222';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#444';g.fillRect(x+2,y+2,S-3,S-3);
+   g.fillStyle='#666';g.fillRect(x+S*.25,y+S*.25,S*.5,S*.5);
+   g.fillStyle='#888';g.fillRect(x+S*.4,y+S*.4,S*.2,S*.2);
+   const spin=(Date.now()/200)%6.28;
+   g.fillStyle='#f44336';g.fillRect(x+S*.45+Math.cos(spin)*S*.08,y+S*.45+Math.sin(spin)*S*.08,S*.1,S*.1);
+   return;
+ }
+ // FIRIN
+ if(b==51){
+   g.fillStyle='#3e2723';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#5d4037';g.fillRect(x+2,y+2,S-3,S-3);
+   g.fillStyle='#4e342e';g.fillRect(x+S*.25,y+S*.25,S*.5,S*.5);
+   g.fillStyle='#ff6f00';g.fillRect(x+S*.4,y+S*.35,S*.2,S*.05);
+   g.fillStyle='#4e342e';g.fillRect(x+1,y+S-2,S-2,1);
+   g.fillStyle='#4e342e';g.fillRect(x+S-2,y+1,1,S-2);
+   g.fillStyle='#795548';g.fillRect(x+S*.3,y+S*.6,S*.4,S*.05);
+   return;
+ }
+ // CALISMA MASASI (Workbench)
+ if(b==52){
+   g.fillStyle='#5d4037';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#795548';g.fillRect(x+2,y+2,S-3,S-3);
+   g.fillStyle='#4e342e';g.fillRect(x+S*.2,y+S*.2,S*.6,S*.6);
+   g.fillStyle='#4e342e';g.fillRect(x+1,y+S-2,S-2,1);
+   g.fillStyle='#4e342e';g.fillRect(x+S-2,y+1,1,S-2);
+   g.fillStyle='#3e2723';g.fillRect(x+S*.15,y+S*.4,S*.1,S*.1);
+   g.fillRect(x+S*.75,y+S*.4,S*.1,S*.1);
+   g.fillRect(x+S*.15,y+S*.7,S*.1,S*.1);
+   g.fillRect(x+S*.75,y+S*.7,S*.1,S*.1);
+   return;
+ }
+ // ALTIN CEVHERI
+ if(b==53){
+   g.fillStyle='#6a6e73';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#8b8f96';g.fillRect(x+1,y+1,S-1,S-1);
+   for(let n=0;n<6;n++){
+     const r=(((X*973917+Y*567483)^(n*782919))>>>0);
+     const ox=4+(r&7)/8*(S-12),oy=4+((r>>3)&7)/8*(S-12),sz=3+(r&3);
+     g.fillStyle='#d4af37';g.fillRect(x+ox,y+oy,sz,sz);
+     g.fillStyle='#ffd700';g.fillRect(x+ox+1,y+oy+1,sz-2,sz-2);
+     g.fillStyle='#ffe066';g.fillRect(x+ox,y+oy,1,1);
+     g.fillStyle='#a06a00';g.fillRect(x+ox+sz-1,y+oy+sz-1,1,1);
+   }
+   return;
+ }
+ // ALTIN BLOK
+ if(b==55){
+   g.fillStyle='#d4af37';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#ffd700';g.fillRect(x+2,y+2,S-4,S-4);
+   g.fillStyle='#ffe066';g.fillRect(x+4,y+4,4,4);g.fillRect(x+S-8,y+4,4,4);
+   g.fillRect(x+4,y+S-8,4,4);g.fillRect(x+S-8,y+S-8,4,4);
+   g.fillStyle='rgba(255,255,255,.3)';g.fillRect(x+2,y+2,S-4,2);g.fillRect(x+2,y+2,2,S-4);
+   return;
+ }
+ // CAKIL TASI
+ if(b==59){
+   g.fillStyle='#b8a868';g.fillRect(x,y,S+1,S+1);
+   g.fillStyle='#c9b878';g.fillRect(x+1,y+1,S-1,S-1);
+   for(let n=0;n<12;n++){
+     const r=(((X*374761393+Y*668265263)^(n*1274126177))>>>0);
+     const ox=(r&7)/8*S*.9,oy=((r>>3)&7)/8*S*.9,sz=1+(r&1);
+     g.fillStyle=n%3===0?'#a09070':(n%3===1?'#d8c8a8':'#e0d0b0');
+     g.fillRect(x+ox,y+oy,sz,sz);
+   }
    return;
  }
  // FALLBACK

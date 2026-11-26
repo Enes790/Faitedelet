@@ -44,6 +44,7 @@ function showName(){
 
 function refresh(){
  renderBar();
+ craftMatch();
  if(pan.style.display=='block')renderPan();
 }
 
@@ -74,7 +75,63 @@ function renderPan(){
  const nf=nearForge();
  lastNF=nf;
 
- let h='<h3>Envanter <u id="px">Kapat</u></h3>';
+ let h='<h3>Envanter <u id="px">Kapat</u> <u id="newgame" style="color:#ff6b6b">Yeni Oyun</u></h3>';
+
+ // FIRIN UI
+ if(furnaceTx!==0||furnaceTy!==0){
+  h+='<h3>Fırın <u id="closeFurnace">Kapat</u></h3>';
+  h+='<div style="display:flex;gap:12px;align-items:center;margin:8px 0">';
+  // Yakıt yuvası
+  h+='<div style="text-align:center">';
+  h+='<div style="font-size:11px;opacity:.8">YAKIT</div>';
+  h+='<div class="cell" data-fs="0" style="position:relative">'+(furnaceSlot[0]?icon(furnaceSlot[0].id)+(furnaceSlot[0].n>1?'<span class="n">×'+furnaceSlot[0].n+'</span>':''):'')+'</div>';
+  h+='</div>';
+  // Ok
+  h+='<div style="font-size:20px;opacity:.5">→</div>';
+  // Girdi
+  h+='<div style="text-align:center">';
+  h+='<div style="font-size:11px;opacity:.8">GİRDİ</div>';
+  h+='<div class="cell" data-fs="1" style="position:relative">'+(furnaceSlot[1]?icon(furnaceSlot[1].id)+(furnaceSlot[1].n>1?'<span class="n">×'+furnaceSlot[1].n+'</span>':''):'')+'</div>';
+  h+='</div>';
+  // Ok2
+  h+='<div style="font-size:20px;opacity:.5">→</div>';
+  // Çıktı
+  h+='<div style="text-align:center">';
+  h+='<div style="font-size:11px;opacity:.8">ÇIKTI</div>';
+  h+='<div class="cell" data-fs="2" style="position:relative">'+(furnaceSlot[2]?icon(furnaceSlot[2].id)+(furnaceSlot[2].n>1?'<span class="n">×'+furnaceSlot[2].n+'</span>':''):'')+'</div>';
+  h+='</div>';
+  h+='</div>';
+  // İlerleme çubuğu
+  const pct=furnaceCookTime>0?Math.min(1,furnaceCook/furnaceCookTime):0;
+  h+='<div style="background:#333;height:8px;border-radius:4px;margin:8px 0;overflow:hidden">';
+  h+='<div style="background:#ff6f00;height:100%;width:'+(pct*100)+'%;border-radius:4px"></div>';
+  h+='</div>';
+  h+='<div style="font-size:11px;opacity:.7">Mesafe uzarsa fırın durur</div>';
+  h+='<div class="sep"></div>';
+ }
+
+ // Craft grid (Minecraft 3x3)
+ h+='<h3>Çözümlenme <small>Eşyaları kareye koy, sonuç çıkacak</small></h3>';
+ h+='<div style="display:flex;gap:8px;align-items:flex-start;margin:6px 0">';
+ h+='<div class="g9" style="gap:4px">';
+ for(let cgi=0;cgi<9;cgi++){
+  const s=craftGrid[cgi];
+  const selCG = (craftHold&&craftHold.grid===cgi);
+  h+='<div class="cell'+(selCG?' sel':'')+'" data-cg="'+cgi+'" style="position:relative">'+(s?icon(s.id)+(s.n>1?'<span class="n">'+s.n+'</span>':''):'')+'</div>';
+ }
+ h+='</div>';
+ h+='<div style="display:flex;flex-direction:column;gap:6px;justify-content:center">';
+ if(craftResult){
+  h+='<div class="cell" style="position:relative">'+icon(craftResult.id)+'<span class="n">×'+craftResult.n+'</span></div>';
+  h+='<button onclick="craftTake()" style="padding:8px 12px;border-radius:6px;border:0;background:#4caf50;color:#fff;font-weight:700;cursor:pointer">AL</button>';
+ } else {
+  h+='<div class="cell" style="opacity:.25"></div>';
+  h+='<button disabled style="padding:8px 12px;border-radius:6px;border:0;background:#666;color:#999;font-weight:700">AL</button>';
+ }
+ h+='</div>';
+ h+='</div>';
+
+ h+='<div class="sep"></div>';
  h+='<div class="info">';
  if(m){
   h+='Taşınıyor: <b>'+NAME[m.id]+(DUR[m.id]?' ('+durOf(m)+'/'+DUR[m.id]+')':' ×'+m.n)+'</b> — hedef kutuya dokun <u id="drop">At</u>';
@@ -149,6 +206,14 @@ function renderPan(){
 }
 
 function cellTap(i){
+ // Craft gridden alınan eşyayı envantere koy
+ if(craftHold){
+  const s=slots[i];
+  if(s&&s.id==craftHold.id&&!isTool(s.id)){s.n+=craftHold.n}
+  else slots[i]={id:craftHold.id,n:craftHold.n};
+  craftHold=null;
+  refresh();return;
+ }
  if(mv==null){
   if(slots[i])mv=i;
   if(i<9){sel=i;showName()}
@@ -176,10 +241,16 @@ function cellTap(i){
 pan.addEventListener('click',e=>{
  const t=e.target;
  if(t.id=='px'){pan.style.display='none';mv=null;return}
+ if(t.id=='newgame'){if(confirm('Yeni oyun başlatmak istediğinizden emin misiniz? Kaydedilen veriler silinecek.')){newWorld(null);pan.style.display='none';return}}
  if(t.id=='drop'){
   if(mv!=null){slots[mv]=null;mv=null;refresh()}
   return;
  }
+ if(t.id=='closeFurnace'){furnaceTx=0;furnaceTy=0;pan.style.display='none';return}
+ const cfs=t.closest&&t.closest('[data-fs]');
+ if(cfs){furnaceSlotTap(+cfs.dataset.fs);return}
+ const cg=t.closest&&t.closest('[data-cg]');
+ if(cg){craftGridTap(+cg.dataset.cg);return}
  const c=t.closest&&t.closest('.cell');
  if(c){cellTap(+c.dataset.s);return}
  const rp=t.closest&&t.closest('button[data-rep]');
@@ -191,7 +262,7 @@ pan.addEventListener('click',e=>{
 function togglePan(){
  const o=pan.style.display=='block';
  pan.style.display=o?'none':'block';
- mv=null;
+ mv=null;craftHold=null;craftResult=null;
  if(!o)renderPan();
 }
 

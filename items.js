@@ -13,7 +13,12 @@ const NAME={
  38:'Elmas kazma',39:'Elmas balta',40:'Elmas kürek',41:'Elmas kılıç',
  42:'Toprak Vazo',
  43:'Su',
- 44:'Tahta Kılıç',45:'Taş Kılıç',46:'Pişmiş Tavuk'
+ 44:'Tahta Kılıç',45:'Taş Kılıç',46:'Pişmiş Tavuk',
+ 47:'Sandık',48:'Mob Üretici',
+ 49:'Ham Balık',50:'Pişmiş Balık',51:'Fırın',52:'Çalışma Masası',
+ 53:'Altın Cevheri',54:'Altın',55:'Altın Blok',
+ 56:'İp',57:'Yay',58:'Ok',59:'Çakıl Taşı',
+ 60:'Çakmak Taşı',61:'Sileç',62:'Olta'
 };
 
 const IC={
@@ -28,7 +33,10 @@ const IC={
  38:'#6ee8f0',39:'#6ee8f0',40:'#6ee8f0',41:'#6ee8f0',
  42:'#b06040',
  43:'#3080d0',
- 44:'#b8864b',45:'#9a9a9a',46:'#d09050'
+ 44:'#b8864b',45:'#9a9a9a',46:'#d09050',
+ 53:'#d4af37',54:'#ffd700',55:'#d4af37',
+ 56:'#8b4513',57:'#8b4513',58:'#a0a0a0',59:'#b8a868',
+ 60:'#ff6f00',61:'#a0a0a0',62:'#8b4513'
 };
 
 const GL={
@@ -40,7 +48,12 @@ const GL={
  36:'💎',37:'💎',38:'⛏',39:'🪓',40:'⚒',41:'🗡',
  42:'🏺',
  43:'💧',
- 44:'🗡',45:'🗡',46:'🍗'
+ 44:'🗡',45:'🗡',46:'🍗',
+ 47:'📦',48:'🔥',
+ 49:'🐟',50:'🍳',51:'🔥',52:'🪵',
+ 53:'🔶',54:'🪙',55:'🟨',
+ 56:'🧵',57:'🏹',58:'➤',59:'🪨',
+ 60:'🔥',61:'🧨',62:'🎣'
 };
 
 // [çıktı, adet, {malzeme:adet}, dökümGerekir]
@@ -71,14 +84,24 @@ const REC=[
  [39,1,{36:3,9:2},0],      // Elmas balta
  [40,1,{36:1,9:2},0],      // Elmas kürek
  [41,1,{36:3,9:1},0],      // Elmas kılıç (2 -> 3 elmas)
+ [52,1,{4:4},0],           // Çalışma Masası (4 odun)
+ [51,1,{3:8},0],           // Fırın (8 taş)
+ [54,1,{53:1},1],          // Altın Cevheri -> Altın (fırın)
+ [55,1,{54:9},0],          // 9 Altın -> Altın Blok
+ [54,9,{55:1},0],          // Altın Blok -> 9 Altın
+ [57,1,{56:3,9:2},0],      // Yay: 3 İp + 2 Çubuk
+ [58,4,{9:1,56:1,61:1},0], // Ok: 1 Çubuk + 1 İp + 1 Sileç -> 4 Ok
+ [60,1,{16:1,61:1},0],     // Çakmak Taşı: 1 Demir + 1 Sileç
+ [62,1,{56:3,9:2},0],      // Olta: 3 İp + 2 Çubuk
 ];
 
 const HARD={
  1:1.0,2:1.0,3:5.0,4:2.2,5:0.5,6:1.2,7:2.2,8:6.0,14:0.6,15:7.5,19:5.0,
- 31:0.5,35:12.0,37:8.0,42:0.8,43:0.5
+ 31:0.5,35:12.0,37:8.0,42:0.8,43:0.5,47:1.0,48:10.0,49:0.5,50:0.5,51:2.0,52:1.0,
+ 53:3.0,54:1.0,55:3.0,56:0.5,57:2.0,58:0.5,59:1.0,60:1.0,61:0.5,62:1.0
 };
 
-const PLACE=new Set([2,3,4,5,6,7,8,14,19,31,37]);
+const PLACE=new Set([2,3,4,5,6,7,8,14,19,31,37,47,48,51,52,53,55,59]);
 
 // ==================== DAYANIKLILIK ====================
 // Aletlerin azami kullanım sayısı (malzemeye göre)
@@ -101,7 +124,7 @@ const TOOLS={
 const REPAIR_BY_DUR={40:[7,1],90:[3,2],250:[16,1],800:[36,1]};
 
 // Yenilebilir eşyalar: id -> yenilenen can
-const FOOD={22:1,28:2,46:5};
+const FOOD={22:1,28:2,46:5,49:2,50:5};
 
 // ==================== EŞYA YARDIMCILARI ====================
 const isTool=id=>DUR[id]!==undefined||TOOL_SET.has(id);
@@ -245,3 +268,115 @@ function craft(i,all){
  // Aletler hep tek tek üretilir ("hepsini yap" malzemeyi tüketmesin)
  if(!all||isTool(REC[i][0])){craftOnce(i);return}
  let n=0;while(n<16&&craftOnce(i))n++}
+
+// ==================== MINECRAFT TARZI CRAFT GRID ====================
+// Griddeki eşyaları say ve eşleşen tarayı bul (şekilsiz / herhangi bir yere koyulabilir)
+function craftMatch(){
+ const counts={};
+ for(const s of craftGrid){if(s)counts[s.id]=(counts[s.id]||0)+(s.n||1)}
+ for(let i=0;i<REC.length;i++){
+  const r=REC[i];
+  let ok=true;
+  for(const k in r[2]){if((counts[+k]||0)<r[2][k]){ok=false;break}}
+  if(ok){craftResult={id:r[0],n:r[1],i};return true}
+ }
+ craftResult=null;
+ return false;
+}
+
+// Gridden eşya al / bırak (envanter panelinden çağrılır)
+function craftGridTap(i){
+ const s=craftGrid[i];
+ if(mv!=null){
+  // Envanterden gride koy (mv = envanter slot indeksi)
+  const inv=slots[mv];
+  if(inv){
+   if(s&&s.id==inv.id&&!isTool(inv.id)){s.n+=inv.n;slots[mv]=null}
+   else{craftGrid[i]={id:inv.id,n:inv.n};slots[mv]=null}
+  }
+  mv=null;
+ }
+ else if(craftHold==null){
+  if(s){craftHold={id:s.id,n:s.n};craftGrid[i]=null}
+ }
+ else if(typeof craftHold==='number'){
+  // Envanterden gride koy
+  const inv=slots[craftHold];
+  if(inv){
+   if(s&&s.id==inv.id&&!isTool(inv.id)){s.n+=inv.n;slots[craftHold]=null}
+   else{craftGrid[i]={id:inv.id,n:inv.n};slots[craftHold]=null}
+  }
+  craftHold=null;
+ }
+ else {
+  // Gridten gride taşı / birleştir
+  if(s&&s.id==craftHold.id&&!isTool(s.id)){s.n+=craftHold.n}
+  else{craftGrid[i]={id:craftHold.id,n:craftHold.n}}
+  craftGrid[craftHold.grid]=null;
+  craftHold=null;
+ }
+ craftMatch();
+ refresh();
+}
+
+// Craft sonucunu al (malzemeyi gridden tüket, sonucu envantere ekle)
+function craftTake(){
+ if(!craftResult)return false;
+ const r=REC[craftResult.i];
+ // Gridden malzemeyi tüket
+ for(const k in r[2]){
+  let need=r[2][k];
+  for(let gi=0;gi<9&&need>0;gi++){
+   const gs=craftGrid[gi];
+   if(gs&&gs.id==+k){const a=Math.min(need,gs.n);gs.n-=a;need-=a;if(!gs.n)craftGrid[gi]=null}
+  }
+ }
+ const left=addItem(craftResult.id,craftResult.n);
+ if(left>0)for(let n=0;n<left;n++)drops.push({x:px+pw/2,y:py,vy:-4,b:craftResult.id,age:0,d:DUR[craftResult.id]});
+ craftResult=null;
+ craftMatch();
+ refresh();
+ return true;
+}
+
+// Fırın yuvası tıklama (0=yakıt, 1=girdi, 2=çıktı)
+function furnaceSlotTap(fs){
+ if(craftHold){
+  // Elinde eşya var, fırına koy (çıkış yuvasına koyulamaz)
+  if(fs===2)return;
+  const target=furnaceSlot[fs];
+  if(target&&target.id==craftHold.id&&!isTool(target.id)){
+   target.n+=craftHold.n;
+  }else{
+   furnaceSlot[fs]={id:craftHold.id,n:craftHold.n};
+  }
+  craftHold=null;
+  refresh();return;
+ }
+ if(mv!=null){
+  const inv=slots[mv];
+  if(inv){
+   if(fs===2)return; // çıkışa koyulamaz
+   const target=furnaceSlot[fs];
+   if(target&&target.id==inv.id&&!isTool(target.id)){
+    target.n+=inv.n;
+   }else{
+    furnaceSlot[fs]={id:inv.id,n:inv.n};
+   }
+   slots[mv]=null;mv=null;
+  }
+  refresh();return;
+ }
+ // El boş, fırından al
+ const s=furnaceSlot[fs];
+ if(s){
+  if(s.id==49||s.id==50){
+   // Ham/pişmiş balık envantere al
+   addItem(s.id,s.n);
+  }else{
+   addItem(s.id,s.n);
+  }
+  furnaceSlot[fs]=null;
+  refresh();
+ }
+}

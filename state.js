@@ -15,7 +15,7 @@ const TOOL_SET=new Set([10,11,12,13,17,18,21,32,33,34,38,39,40,41]);
 // ==================== DÜNYA VERİSİ ====================
 const w=new Uint8Array(W*H),bg=new Uint8Array(W*H);
 const tileCache=new Map();
-const seed=Math.random()*1000;
+let seed=window.chosenSeed??(Math.random()*1000);
 const hgt=x=>Math.floor(24+Math.sin(x*.07+seed)*5+Math.sin(x*.19+seed*2)*2.5+Math.sin(x*.023+seed)*6);
 const inBounds=(x,y)=>x>=0&&x<W&&y>=0&&y<H;
 const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
@@ -23,11 +23,38 @@ const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
 // ==================== ENVANTER ====================
 const slots=new Array(NS).fill(null);
 let sel=0,mv=null;
+// Crafting grid (Minecraft 3x3)
+const craftGrid=new Array(9).fill(null);
+let craftHold=null;   // gridden alınan eşya
+let craftResult=null; // {id,n,i} recipe sonucu
+
+// Çalışma Masası modu: true = masa ile 3x3, false = envanter 2x2
+let craftTableMode=false;
+
+// Fırın sistemi
+const furnaceSlot=new Array(3).fill(null); // [0]=yakıt, [1]=girdi, [2]=çıktı
+let furnaceCook=0;      // pişirme ilerlemesi 0-1
+let furnaceCookTime=0;  // gereken süre (saniye)
+let furnaceActive=false;
+let furnaceTx=0,furnaceTy=0; // fırının dünya konumu
+const FUEL_BURN={8:80,4:15,6:5}; // kömür=80sn, odun=15sn, kum=5sn
+const COOK_RECIPES={
+ 49:{out:50,time:10},   // ham balık -> pişmiş balık, 10sn
+};
+
+// Yay ve ok sistemi
+let bowCharge=0;       // 0-1 yükleme oranı
+let bowCharging=false; // yay çekiliyor mu
+let bowChargeStart=0;  // başlangıç zamanı
+
+// Balık tutma (olta)
+let fishing=0;         // 0=-1 değil, >0 balık tutuluyor
+let fishingTx=0,fishingTy=0; // olta konumu
 
 // ==================== OYUN DURUMU ====================
 let lights=[];
 const skyExposed=new Uint8Array(W*H);
-let px=W/2,py=hgt(W/2)-3,vx=0,vy=0,ground=false,face=1,anim=0,tod=0,todDay=.5;
+let px=W/2,py=hgt(W/2)+0.2,vx=0,vy=0,ground=false,face=1,anim=0,tod=0,todDay=.5;
 let playerHp=20,playerMaxHp=20,hurtT=0,invT=0,attackCd=0,atkT=0,regenTimer=0,lastHpInt=20,shakeT=0,sayCd=0,panT=0,lastNF=false;
 let VW=0,VH=0,S=40,camX=0,camY=0,dpr=1;
 let drops=[],fl=[],parts=[],pops=[],mine=null,projectiles=[],arrows=[];

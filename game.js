@@ -34,6 +34,7 @@ addEventListener('keydown',e=>{keys[e.code]=1;
  if(e.code=='KeyE')togglePan();
  if(e.code=='KeyF')useItem();
  if(e.code=='KeyQ')throwOrb()
+ if(e.code=='KeyK')saveGame(0)
 });
 addEventListener('keyup',e=>keys[e.code]=0);
 cv.addEventListener('contextmenu',e=>e.preventDefault());
@@ -57,6 +58,9 @@ function say(s){if(sayCd>0)return;sayCd=1.2;fl.push({x:px+pw/2,y:py-.3,t:1.3,s})
 // ==================== TAVUK SPAWN TIMER ====================
 let chickenTimer=0;
 let chickenNextSpawn=8+Math.random()*7; // 8-15 saniye arası rastgele
+let grassTimer=0;
+let fishTimer=0;
+let fishNextSpawn=10+Math.random()*10; // 10-20 saniye
 
 // ==================== UPDATE (Ana Döngü) ====================
 function update(dt){
@@ -131,8 +135,36 @@ function update(dt){
  const mt=actHeld?mobTarget():null;
  if(mt&&attackCd<=0)strike(mt);
 
- // Kazma
- mineStep(dt,!!mt);
+ // Yay yükleme
+ const s=slots[sel];
+ if(s&&s.id==57&&actHeld){
+  bowCharging=true;
+  bowCharge=Math.min(1,bowCharge+dt*1.5);
+ }else if(bowCharging&&!actHeld){
+  // Yay bırakıldı - ok at
+  bowCharging=false;
+  if(bowCharge>0.3){
+   const arrowCount=count(58);
+   if(arrowCount>0){
+    take(58,1);
+    projectiles.push({
+     x:px+pw/2,y:py+ph/2,
+     vx:aimX*14,vy:aimY*14-2,
+     age:0,type:58,spin:0
+    });
+    fl.push({x:px+pw/2,y:py-.3,t:1,s:'Ok fırlatıldı',color:'#a0a0a0'});
+    buzz(10);
+   }else{
+    say('Ok yok');
+   }
+  }
+  bowCharge=0;
+ }else if(!actHeld){
+  bowCharging=false;bowCharge=0;
+ }
+
+ // Kazma (yay seçiliyken kazma devre dışı)
+ mineStep(dt,!!mt||(slots[sel]&&slots[sel].id==57));
 
  // Kaktüs hasarı kontrolü
  checkCactusDamage();
@@ -167,9 +199,93 @@ function update(dt){
   if(chickenCount<4&&Math.random()<0.05)spawnChicken();
  }
 
- // Mobları güncelle
- updateMobs(dt);
- updateArrows(dt);
+ // Balık doğma: oyuncunun çevresindeki su bloklarında
+ fishTimer+=dt;
+ if(fishTimer>fishNextSpawn){
+  fishTimer=0;
+  fishNextSpawn=10+Math.random()*10;
+  const fishCount=mobs.filter(m=>m.type=='f'&&!m.dead).length;
+  if(fishCount<6){
+   const cx=Math.floor(px+pw/2),cy=Math.floor(py+ph/2);
+   for(let t=0;t<15;t++){
+    const x=cx+(Math.floor(Math.random()*11)-5);
+    const y=cy+(Math.floor(Math.random()*11)-5);
+    if(x>=0&&x<W&&y>=0&&y<H-1 && get(x,y)===43 && !get(x,y+1)){
+     mobs.push(newMob('f',x+0.15,y+0.2));
+     break;
+    }
+   }
+  }
+ }
+
+// Olta sistemi: su üzerinde bekletildiğinde balık düşür
+ if(fishing>0){
+  fishing-=dt;
+  if(fishing<=0){
+   const cx=fishingTx,cy=fishingTy;
+   if(get(cx,cy)===43 && Math.random()<0.6){
+    addItem(49,1); // Ham balık
+    fl.push({x:px+pw/2,y:py-.3,t:1.2,s:'Balık tutuldu!',color:'#4a90e0'});
+    buzz(14);
+   }else{
+    say('Balık kaçtı');
+   }
+   fishing=0;
+  }
+ }
+
+// Fırın sistemi: oyuncu yakındaysa pişirme devam eder
+ if(furnaceTx!==0||furnaceTy!==0){
+  const dx=furnaceTx+0.5-(px+pw/2),dy=furnaceTy+0.5-(py+ph/2);
+  const dist=Math.hypot(dx,dy);
+  if(dist>12){furnaceActive=false;furnaceCook=0;furnaceCookTime=0;furnaceTx=0;furnaceTy=0;pan.style.display='none'}
+  else{
+   // Yakıt var ve girdi var ve pişirme devam etmiyorsa başlat
+   if(!furnaceActive&&furnaceSlot[0]&&furnaceSlot[1]){
+    const fuel=furnaceSlot[0].id;
+    const input=furnaceSlot[1].id;
+    const burnTime=FUEL_BURN[fuel];
+    const recipe=COOK_RECIPES[input];
+    if(burnTime&&recipe){
+     furnaceActive=true;
+     furnaceCookTime=recipe.time;
+     furnaceCook=0;
+     furnaceSlot[0].n--;if(!furnaceSlot[0].n)furnaceSlot[0]=null;
+    }
+   }
+   // Pişirme ilerle
+   if(furnaceActive&&furnaceSlot[1]){
+    furnaceCook+=dt;
+    if(furnaceCook>=furnaceCookTime){
+     const recipe=COOK_RECIPES[furnaceSlot[1].id];
+     furnaceSlot[1].n--;if(!furnaceSlot[1].n)furnaceSlot[1]=null;
+     if(furnaceSlot[2]){
+      if(furnaceSlot[2].id==recipe.out)furnaceSlot[2].n+=1;
+     }else furnaceSlot[2]={id:recipe.out,n:1};
+     furnaceActive=false;furnaceCook=0;furnaceCookTime=0;
+    }
+   }
+  }
+ }
+
+ // Çimen yayılma: oyuncunun çevresinde, aşağıda çimen/üstünde varsaToprak → çimene çevir (her 5 saniye)
+ grassTimer+=dt;
+ if(grassTimer>5){
+  grassTimer=0;
+  const cx=Math.floor(px),cy=Math.floor(py);
+  let spread=0;
+  for(let t=0;t<8&&spread<2;t++){
+   const x=cx+(Math.floor(Math.random()*9)-4);
+   const y=cy+(Math.floor(Math.random()*9)-4);
+   if(x>=0&&x<W&&y>=0&&y<H-1 && get(x,y)==1 && get(x,y+1)==2){
+    w[(y+1)*W+x]=1;
+    spread++;
+    updateSkyColumn(x);
+   }
+  }
+ }
+
+ // Mob Üretici (Spawner): Yakındaki 48 bloklarından mob doğur\n let spawnerTimer=0;\n spawnerTimer+=dt;\n if(spawnerTimer>2){\n  spawnerTimer=0;\n  const pcx=px+pw/2,pcy=py+ph/2;\n  let totalMobs=mobs.filter(m=>!m.dead).length;\n  if(totalMobs<16){\n   for(let y=Math.max(0,Math.floor(pcy)-6);y<=Math.min(H-1,Math.floor(pcy)+6)&&totalMobs<16;y++){\n    for(let x=Math.max(0,Math.floor(pcx)-6);x<=Math.min(W-1,Math.floor(pcx)+6)&&totalMobs<16;x++){\n     if(get(x,y)==48){\n      const spawnY=y-1;\n      if(!get(x,spawnY)&&!getBg(x,spawnY)&&solid(x,spawnY+1)){\n       const type=Math.random()<0.5?'z':'s';\n       mobs.push(newMob(type,x+0.15,spawnY));\n       totalMobs++;\n      }\n     }\n    }\n   }\n  }\n }\n\n // Mobları güncelle\n updateMobs(dt);\n updateArrows(dt);
  
  // Hasar titremesi
  hurtT=Math.max(0,hurtT-dt);
@@ -190,17 +306,59 @@ function update(dt){
  camY=Math.max(0,Math.min(Math.max(0,H-th),camY));
 }
 
-// ==================== BAŞLAT ====================
-addItem(2,10);
-addItem(7,12);
-showName();
+// ==================== BAŞLANGIÇ EKRANI ====================
+const ss=document.getElementById('startscreen');
+const seedInput=document.getElementById('seedinput');
+const worldList=document.getElementById('worldlist');
+let gameStarted=false;
 
-let last=performance.now();
-function loop(n){
- const dt=Math.min(.05,(n-last)/1000);
- last=n;
- update(dt);
- draw();
+function renderWorldList(){
+ const saves=listSaves();
+ let html='';
+ if(saves.length===0)html='<div style="font-size:12px;opacity:.6;padding:8px">Kayıtlı dünya yok</div>';
+ else{
+  saves.forEach(d=>{
+   const date=new Date(d.time).toLocaleString('tr-TR');
+   html+=`<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,.1);cursor:pointer" onclick="loadSlot(${d.slot})">
+    <div style="font-weight:700">Slot ${d.slot+1}</div>
+    <div style="font-size:12px;opacity:.8">Seed: ${d.seed?.toFixed?.(0)??'-'} · ${date}</div>
+   </div>`;
+  });
+ }
+ worldList.innerHTML=html;
+}
+
+window.loadSlot=(slot)=>{
+ if(loadGameSlot(slot)){ss.style.display='none';gameStarted=true;startLoop();}
+};
+
+renderWorldList();
+
+document.getElementById('startbtn').addEventListener('click',()=>{
+ const val=seedInput.value.trim();
+ const s=val?parseFloat(val):null;
+ newWorld(s);
+ ss.style.display='none';
+ gameStarted=true;
+ startLoop();
+});
+
+function startLoop(){
+ showName();
+ let last=performance.now();
+ function loop(n){
+  const dt=Math.min(.05,(n-last)/1000);
+  last=n;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+ }
  requestAnimationFrame(loop);
 }
-requestAnimationFrame(loop);
+
+// Başlangıç ekranındayken döngüyü çalıştırma
+if(!gameStarted){
+ ss.style.display='flex';
+ // İlk karede canvası temizle
+ g.fillStyle='#0a0f1e';g.fillRect(0,0,VW,VH);
+}
